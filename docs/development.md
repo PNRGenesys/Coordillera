@@ -28,6 +28,7 @@ La configuracion local de API esta en `apps/api/.env`. Nunca se deben versionar 
 | `npm.cmd run dev` | Inicia frontend y API. |
 | `npm.cmd run build` | Compila ambos proyectos. |
 | `npm.cmd run typecheck` | Comprueba tipos. |
+| `npm.cmd run test --workspace=@coordillera/web` | Ejecuta pruebas unitarias del frontend. |
 | `npm.cmd run db:up` | Inicia PostgreSQL. |
 | `npm.cmd run db:down` | Detiene PostgreSQL. |
 | `npm.cmd run db:generate --workspace=@coordillera/api` | Genera migracion tras editar el esquema. |
@@ -45,4 +46,8 @@ La configuracion local de API esta en `apps/api/.env`. Nunca se deben versionar 
 ## Pruebas visuales
 
 Los MCP de Playwright y Chrome DevTools estan configurados globalmente para Codex. Reinicia Codex o abre una sesion nueva despues de configurarlos para que esten disponibles.
+
+## Datos de demostracion
+
+No se insertan productos de demostracion en PostgreSQL. Por eso el catalogo muestra su estado vacio hasta que se creen y publiquen productos desde la API administrativa.
 

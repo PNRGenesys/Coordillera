@@ -1,4 +1,4 @@
-import { integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, jsonb, pgEnum, pgSequence, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 
 const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -9,12 +9,22 @@ export const productStatus = pgEnum('product_status', ['draft', 'active', 'archi
 export const orderStatus = pgEnum('order_status', ['pending_payment', 'paid', 'processing', 'fulfilled', 'shipped', 'delivered', 'cancelled', 'refunded'])
 export const inventoryMovementType = pgEnum('inventory_movement_type', ['restock', 'adjustment', 'reservation', 'release', 'sale', 'return'])
 
+export const releaseStatus = pgEnum('release_status', ['available', 'preorder', 'coming_soon'])
+
+export const orderNumberSequence = pgSequence('order_number_seq', { startWith: 1000, increment: 1 })
+
+export const sizeGuides = pgTable('size_guides', {
+  id: uuid('id').defaultRandom().primaryKey(), name: varchar('name', { length: 120 }).notNull(), slug: varchar('slug', { length: 140 }).notNull().unique(), measurementUnit: varchar('measurement_unit', { length: 10 }).default('cm').notNull(), columns: jsonb('columns').$type<string[]>().notNull(), rows: jsonb('rows').$type<Record<string, string>[]>().notNull(), ...timestamps,
+})
 export const categories = pgTable('categories', {
-  id: uuid('id').defaultRandom().primaryKey(), name: varchar('name', { length: 120 }).notNull(), slug: varchar('slug', { length: 140 }).notNull().unique(), parentId: uuid('parent_id'), ...timestamps,
+  id: uuid('id').defaultRandom().primaryKey(), name: varchar('name', { length: 120 }).notNull(), slug: varchar('slug', { length: 140 }).notNull().unique(), parentId: uuid('parent_id'), sizeGuideId: uuid('size_guide_id').references(() => sizeGuides.id), position: integer('position').default(0).notNull(), ...timestamps,
+})
+export const collections = pgTable('collections', {
+  id: uuid('id').defaultRandom().primaryKey(), name: varchar('name', { length: 140 }).notNull(), slug: varchar('slug', { length: 160 }).notNull().unique(), tagline: varchar('tagline', { length: 240 }), description: text('description'), heroImageUrl: text('hero_image_url'), releasedAt: timestamp('released_at', { withTimezone: true }), featured: boolean('featured').default(false).notNull(), ...timestamps,
 })
 export const products = pgTable('products', {
-  id: uuid('id').defaultRandom().primaryKey(), categoryId: uuid('category_id').references(() => categories.id), name: varchar('name', { length: 180 }).notNull(), slug: varchar('slug', { length: 200 }).notNull().unique(), description: text('description'), status: productStatus('status').default('draft').notNull(), ...timestamps,
-})
+  id: uuid('id').defaultRandom().primaryKey(), categoryId: uuid('category_id').references(() => categories.id), collectionId: uuid('collection_id').references(() => collections.id), name: varchar('name', { length: 180 }).notNull(), slug: varchar('slug', { length: 200 }).notNull().unique(), description: text('description'), composition: varchar('composition', { length: 240 }), status: productStatus('status').default('draft').notNull(), release: releaseStatus('release').default('available').notNull(), availableAt: timestamp('available_at', { withTimezone: true }), ...timestamps,
+}, (table) => [index('products_status_idx').on(table.status), index('products_collection_idx').on(table.collectionId), index('products_category_idx').on(table.categoryId)])
 export const productVariants = pgTable('product_variants', {
   id: uuid('id').defaultRandom().primaryKey(), productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(), sku: varchar('sku', { length: 80 }).notNull().unique(), barcode: varchar('barcode', { length: 80 }), name: varchar('name', { length: 180 }).notNull(), color: varchar('color', { length: 60 }), size: varchar('size', { length: 30 }), priceCents: integer('price_cents').notNull(), compareAtPriceCents: integer('compare_at_price_cents'), weightGrams: integer('weight_grams'), attributes: jsonb('attributes').$type<Record<string, string>>().default({}).notNull(), ...timestamps,
 })
@@ -44,4 +54,7 @@ export const orderItems = pgTable('order_items', {
 })
 export const inventoryReservations = pgTable('inventory_reservations', {
   id: uuid('id').defaultRandom().primaryKey(), inventoryItemId: uuid('inventory_item_id').references(() => inventoryItems.id).notNull(), orderId: uuid('order_id').references(() => orders.id, { onDelete: 'cascade' }).notNull(), quantity: integer('quantity').notNull(), expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(), releasedAt: timestamp('released_at', { withTimezone: true }), createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-})
+}, (table) => [index('reservations_pending_idx').on(table.releasedAt, table.expiresAt)])
+export const restockRequests = pgTable('restock_requests', {
+  id: uuid('id').defaultRandom().primaryKey(), variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }).notNull(), email: varchar('email', { length: 320 }).notNull(), notifiedAt: timestamp('notified_at', { withTimezone: true }), createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [uniqueIndex('restock_variant_email_unique').on(table.variantId, table.email)])

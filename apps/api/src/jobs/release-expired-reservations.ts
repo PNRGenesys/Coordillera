@@ -8,9 +8,9 @@ const expired = await db.transaction(async (tx) => {
   for (const reservation of reservations) {
     await tx.update(inventoryItems).set({ reserved: sql`${inventoryItems.reserved} - ${reservation.quantity}`, updatedAt: new Date() }).where(eq(inventoryItems.id, reservation.inventoryItemId))
     await tx.update(inventoryReservations).set({ releasedAt: new Date() }).where(eq(inventoryReservations.id, reservation.id))
-    await tx.insert(inventoryMovements).values({ inventoryItemId: reservation.inventoryItemId, type: 'release', quantity: reservation.quantity, reference: reservation.orderId, note: 'Reserva vencida' })
+    await tx.insert(inventoryMovements).values({ inventoryItemId: reservation.inventoryItemId, type: 'release', quantity: reservation.quantity, reference: reservation.orderId, note: 'Expired reservation' })
   }
   return reservations.length
 })
 
-console.info(`Reservas liberadas: ${expired}`)
+console.info(`Released reservations: ${expired}`)
