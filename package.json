@@ -1,0 +1,23 @@
+{
+  "name": "coordillera",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently --names web,api --prefix-colors cyan,green \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:web": "npm run dev --workspace=@coordillera/web",
+    "dev:api": "npm run dev --workspace=@coordillera/api",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "latest"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}
