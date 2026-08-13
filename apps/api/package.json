@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
@@ -26,6 +27,7 @@
     "drizzle-kit": "latest",
     "tsx": "latest",
     "typescript": "latest",
+    "vitest": "^4.1.10",
     "@types/node": "latest"
   }
 }

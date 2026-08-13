@@ -1,58 +1,67 @@
 # Estado y trabajo pendiente
 
-Corte: 2026-08-12. Trabajo en `main`, sin commit. Documento de traspaso para continuar en otro entorno.
+Corte: 2026-08-13. Trabajo en `main`, sin commit.
 
-## Hecho y verificado
+## Estado actual
 
-### Backend (`apps/api`)
+Backend y frontend completos y verificados contra la base de datos local. Todo lo que aparecia como pendiente de verificacion en el corte anterior ya se ejecuto.
 
-| Archivo | Estado |
+### Verificacion end to end (hecha, con Docker y PostgreSQL en ejecucion)
+
+| Flujo | Resultado |
 |---|---|
-| `src/config.ts` | Nuevo. Constantes por env: moneda, TTL de reserva, tamaños de página, máximo por línea de carrito, umbral de stock bajo. |
-| `src/errors.ts` | Nuevo. `DomainError` con códigos → HTTP, handler global de Fastify (mapea `ZodError` a 400). |
-| `src/schemas.ts` | Nuevo. Todos los esquemas Zod centralizados. |
-| `src/db/queries.ts` | Nuevo. Fragmentos SQL reutilizables: `availableUnits`, `productAvailableUnits`, `nextOrderNumber`. |
-| `src/routes/catalog.ts` | Nuevo. `GET /api/collections`, `/api/categories`, `/api/products` (filtros + paginación), `/api/products/:slug`. |
-| `src/routes/cart.ts` | Nuevo. `GET/POST/PATCH/DELETE` de carrito, con validación de stock. |
-| `src/routes/checkout.ts` | Nuevo. `POST /api/checkout`, `POST /api/restock-requests`. |
-| `src/routes/admin.ts` | Nuevo. `GET /api/admin/inventory`, ajustes, alta de productos. |
-| `src/routes/index.ts` | Nuevo. Registro de módulos. |
-| `src/routes.ts` | **Eliminado** (reemplazado por `src/routes/`). |
-| `src/app.ts` | Registra el handler de errores. |
-| `src/db/seed.ts` | Nuevo. Datos demo idempotentes. Script `npm run db:seed --workspace=@coordillera/api`. |
-| `src/jobs/release-expired-reservations.ts` | Textos traducidos a inglés. |
+| `db:migrate` + `db:seed` | OK, 7 productos activos. |
+| `GET /api/collections`, `/api/categories` | OK. |
+| `GET /api/products` con paginacion y filtros (`collection`, `size`, `availability=in_stock`) | OK. |
+| `GET /api/products/:slug` | OK, incluye imagenes, variantes con disponibilidad y guia de tallas. |
+| Carrito: agregar, actualizar, quitar | OK. |
+| Agregar variante agotada | 409 `out_of_stock`. |
+| Cantidad por encima del maximo por linea | 400 `invalid_request`. |
+| Cantidad por encima del stock | 409 `out_of_stock`. |
+| `POST /api/checkout` | 201, pedido `ORD-001000` con reserva de 20 minutos y carrito vaciado. |
+| `POST /api/restock-requests` | 202. |
+| `GET /api/admin/inventory` | OK con clave; 401 sin ella. |
+| Slug inexistente | 404 `product_not_found`. |
+| Proxy de Vite `/api` | OK. |
 
-### Base de datos
+### Revision visual (hecha, con Playwright)
 
-Migración `drizzle/0001_loving_scarlet_spider.sql` **generada y aplicada**. Añade:
+Se recorrieron inicio, catalogo, catalogo por coleccion, detalle, producto agotado, carrito y checkout en 1440x1000 y en 390x844, sin errores de consola. Los estilos de Linaria se emiten correctamente tras cambiar el plugin de Vite.
 
-- Tablas `size_guides`, `collections`, `restock_requests`.
-- Secuencia `order_number_seq` (números de pedido secuenciales, reemplaza `Date.now()`).
-- `products`: `collection_id`, `composition`, `release` (`available|preorder|coming_soon`), `available_at`, 3 índices.
-- `categories`: `size_guide_id`, `position`.
-- Índice de reservas pendientes.
+### Validaciones
 
-Seed ejecutado: **7 productos activos**, 2 colecciones, 3 categorías, 2 guías de talla, inventario y movimientos. `trail-tote` queda con stock 0 a propósito (probar agotado); `glacier-overshirt` es `preorder`.
+- `npm.cmd run typecheck` OK.
+- `npm.cmd run test` OK: 6 pruebas de API + 14 del frontend.
+- `npm.cmd run build` OK.
+- Entorno verificado: Windows 11, Node 24.19.0, PostgreSQL en Docker.
 
-### Assets
+## Pendiente
 
-`apps/web/public/placeholders/*.svg` — 9 placeholders genéricos (7 productos + 2 colecciones). Sustituibles sin tocar componentes: el seed apunta a `/placeholders/<slug>.svg`.
+### 1. Panel administrativo
 
-### Validaciones ejecutadas
+Las rutas `/api/admin/*` existen pero no tienen interfaz. Siguen protegidas solo por el encabezado `x-admin-key` (temporal, ver `docs/architecture.md`).
 
-- `npm.cmd run typecheck --workspace=@coordillera/api` → OK.
-- `db:generate`, `db:migrate`, `db:seed` → OK contra el contenedor `coordillera-database-1`.
-- `react-router-dom` instalado en `@coordillera/web`.
+### 2. Facetas del catalogo
 
-## Roto ahora mismo
+Los desplegables de color y talla en `/shop` se arman con los productos de la pagina visible, asi que al filtrar por un color el desplegable deja de ofrecer los demas (hay que volver a "Todos" para cambiar). Solucion adecuada: un endpoint de facetas que devuelva colores y tallas del catalogo completo segun coleccion y categoria.
 
-`apps/web` **no compila contra el contrato nuevo**. `store/catalog-api.ts` declara `getProducts` como `ReadonlyArray<CatalogProduct>` pero la API devuelve `{ items, page, pageSize, total }`. La home renderiza vacío hasta corregirlo. Esto es lo primero a arreglar.
+### 3. Optimizacion de assets
+
+`apps/web/src/assets/hero-collection.png` pesa ~2 MB y se sirve tal cual en el build. Sustituible por fotografia de producto real; conviene comprimir y redimensionar al reemplazarla.
+
+### 4. Vulnerabilidades de dependencias
+
+`npm audit` reporta 4 moderadas, todas heredadas de `esbuild` via `drizzle-kit` (las 3 criticas anteriores desaparecieron al quitar `@linaria/vite`). `npm audit fix --force` implica un downgrade incompatible de `drizzle-kit`; no se aplico.
+
+### 5. Trabajo de producto todavia no empezado
+
+Pasarela de pago, envios y costos, cuentas de cliente, historial de pedidos, correos transaccionales y contenido editorial real (fotografia, textos, colecciones definitivas).
 
 ## Contrato de API vigente
 
 ```
 GET  /api/collections            -> [{ id, name, slug, tagline, heroImageUrl, releasedAt, featured }]
-GET  /api/categories             -> [{ id, name, slug, position }]
+GET  /api/categories              -> [{ id, name, slug, position }]
 GET  /api/products?collection=&category=&color=&size=&availability=all|in_stock&page=&pageSize=
      -> { page, pageSize, total, items: [{ id, slug, name, release, availableAt, categorySlug,
            collectionSlug, collectionName, minPriceCents, maxPriceCents, colors[], sizes[],
@@ -76,40 +85,13 @@ POST   /api/admin/products                         (header x-admin-key)
 
 `CartView = { sessionId, currency, items: [{ variantId, sku, productName, productSlug, variantName, color, size, unitPriceCents, quantity, availableUnits, imageUrl }], itemCount, subtotalCents }`
 
-Errores: `{ code, message, details }`. Códigos: `cart_not_found`, `cart_empty`, `cart_item_not_found`, `product_not_found`, `variant_not_found`, `out_of_stock`, `invalid_adjustment`, `invalid_request`, `internal_error`.
-
-## Pendiente
-
-### 1. Frontend — es todo el trabajo restante
-
-- `src/store/catalog-api.ts`: reescribir con los tipos del contrato de arriba. Endpoints: `getCollections`, `getCategories`, `getProducts(filters)`, `getProduct(slug)`, `getCart(sessionId)`, `addCartItem`, `updateCartItem`, `removeCartItem`, `checkout`, `requestRestock`. Tag `Cart` invalidado por las mutaciones; tag `Catalog` para producto/listado.
-- `src/store/hooks.ts`: `useAppDispatch` / `useAppSelector` tipados.
-- `src/store.ts`: el `cartSlice` actual tiene `setItemCount` sin usar. Debe guardar solo el `sessionId`; el conteo sale de `getCart` (RTK Query), no duplicado en el slice.
-- `src/lib/session.ts`: `sessionId` persistido en `localStorage` con `crypto.randomUUID()` (hoy vive dentro de `App.tsx`).
-- Router (`react-router-dom` ya instalado): `/`, `/shop`, `/shop/:collection`, `/product/:slug`, `/cart`, `/checkout`, 404.
-- Componentes compartidos con Linaria (evitar el bloque monolítico de estilos que hoy tiene `App.tsx`): tokens de color/tipografía en variables CSS globales, `Layout` (barra de avisos + header + footer), `ProductCard`, `StateMessage` (cargando/error/vacío), `Price`, `VariantSelector`, `SizeGuideTable`, `QuantityStepper`.
-- Páginas: home editorial (colección destacada + categorías + últimos productos), catálogo con filtros (colección, categoría, color, talla, disponibilidad) y paginación, detalle con galería, variantes, guía de tallas, composición y aviso de reposición cuando `availableUnits === 0`, carrito editable, checkout sin pago con confirmación de número de pedido.
-- Estados explícitos que la API ya soporta: agotado, `preorder`, última existencia (`availableUnits <= 3`).
-
-### 2. Pruebas
-
-- No hay configuración de Vitest en `apps/web/vite.config.ts` (falta `test: { environment: 'jsdom', setupFiles }`) ni `test` en el `package.json` raíz.
-- Existe solo `src/lib/format-price.test.ts`.
-- Faltan: pruebas del `cartSlice`/selectores, de `lib/session.ts` y de render de `ProductCard`.
-- Backend sin pruebas automatizadas. Mínimo útil: checkout con stock insuficiente (`out_of_stock`) y reserva atómica.
-
-### 3. Verificación no hecha
-
-Ningún endpoint nuevo se ejecutó contra la API en caliente; solo se validaron tipos, migración y seed. Falta arrancar `npm.cmd run dev` y probar el flujo completo, incluida la revisión visual con los MCP de Playwright / Chrome DevTools.
-
-### 4. Documentación
-
-`docs/api.md`, `docs/architecture.md`, `docs/development.md` y `docs/changelog.md` siguen describiendo el contrato viejo. Actualizar antes de cualquier commit (regla de `AGENTS.md`).
+Errores: `{ code, message, details }`. Codigos: `cart_not_found`, `cart_empty`, `cart_item_not_found`, `product_not_found`, `variant_not_found`, `out_of_stock`, `invalid_adjustment`, `invalid_request`, `internal_error`.
 
 ## Comandos
 
 ```powershell
 npm.cmd install
+Copy-Item apps/api/.env.example apps/api/.env
 npm.cmd run db:up
 npm.cmd run db:migrate --workspace=@coordillera/api
 npm.cmd run db:seed    --workspace=@coordillera/api
@@ -118,4 +100,4 @@ npm.cmd run dev
 
 Web `http://localhost:5173`, API `http://localhost:3000/api/health`.
 
-Para el panel administrativo hace falta `ADMIN_API_KEY` en `apps/api/.env` y enviarla en la cabecera `x-admin-key`.
+`apps/api/.env` es obligatorio: sin `DATABASE_URL` fallan `db:migrate`, `db:seed`, el servidor y las pruebas de la API. Para el panel administrativo hace falta `ADMIN_API_KEY` y enviarla en la cabecera `x-admin-key`.

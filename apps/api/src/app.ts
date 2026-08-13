@@ -4,7 +4,7 @@ import { registerErrorHandler } from './errors.js'
 import { registerRoutes } from './routes/index.js'
 
 export async function buildApp() {
-  const app = Fastify({ logger: true })
+  const app = Fastify({ logger: process.env.NODE_ENV !== 'test' })
   await app.register(cors, { origin: process.env.CORS_ORIGIN?.split(',') ?? ['http://localhost:5173'] })
 
   registerErrorHandler(app)

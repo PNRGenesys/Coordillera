@@ -47,7 +47,8 @@ const sizeGuideSeeds = [
 const categorySeeds = [
   { slug: 't-shirts', name: 'T-shirts', position: 1, sizeGuideSlug: 'tops' },
   { slug: 'outerwear', name: 'Outerwear', position: 2, sizeGuideSlug: 'outerwear' },
-  { slug: 'accessories', name: 'Accessories', position: 3, sizeGuideSlug: 'tops' },
+  // Accessories are one size, so they have no size guide.
+  { slug: 'accessories', name: 'Accessories', position: 3, sizeGuideSlug: undefined },
 ]
 
 const collectionSeeds = [
@@ -86,8 +87,9 @@ async function seed(): Promise<void> {
   const guideIdBySlug = new Map(guideRows.map((row) => [row.slug, row.id]))
 
   for (const category of categorySeeds) {
-    await db.insert(categories).values({ name: category.name, slug: category.slug, position: category.position, sizeGuideId: guideIdBySlug.get(category.sizeGuideSlug) })
-      .onConflictDoNothing({ target: categories.slug })
+    const sizeGuideId = category.sizeGuideSlug ? guideIdBySlug.get(category.sizeGuideSlug) : undefined
+    await db.insert(categories).values({ name: category.name, slug: category.slug, position: category.position, sizeGuideId })
+      .onConflictDoUpdate({ target: categories.slug, set: { name: category.name, position: category.position, sizeGuideId: sizeGuideId ?? null, updatedAt: new Date() } })
   }
   const categoryRows = await db.select({ id: categories.id, slug: categories.slug }).from(categories)
   const categoryIdBySlug = new Map(categoryRows.map((row) => [row.slug, row.id]))

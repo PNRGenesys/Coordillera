@@ -1,22 +1,14 @@
-import { configureStore, createSlice, type PayloadAction } from '@reduxjs/toolkit'
+import { configureStore } from '@reduxjs/toolkit'
+import { cartSlice, createCartInitialState } from './store/cart-slice'
 import { catalogApi } from './store/catalog-api'
+import { uiSlice } from './store/ui-slice'
+import { getOrCreateSessionId } from './lib/session'
 
-type CartState = { itemCount: number }
-
-const cartSlice = createSlice({
-  name: 'cart',
-  initialState: { itemCount: 0 } satisfies CartState,
-  reducers: {
-    setItemCount: (state, action: PayloadAction<number>) => {
-      state.itemCount = action.payload
-    },
-  },
-})
-
-export const { setItemCount } = cartSlice.actions
 export const store = configureStore({
-  reducer: { cart: cartSlice.reducer, [catalogApi.reducerPath]: catalogApi.reducer },
+  reducer: { cart: cartSlice.reducer, ui: uiSlice.reducer, [catalogApi.reducerPath]: catalogApi.reducer },
+  preloadedState: { cart: createCartInitialState(getOrCreateSessionId()) },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(catalogApi.middleware),
 })
 
 export type RootState = ReturnType<typeof store.getState>
+export type AppDispatch = typeof store.dispatch

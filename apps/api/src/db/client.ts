@@ -5,7 +5,7 @@ import * as schema from './schema.js'
 const connectionString = process.env.DATABASE_URL
 
 if (!connectionString) {
-  throw new Error('DATABASE_URL es obligatoria. Copia apps/api/.env.example a .env.')
+  throw new Error('DATABASE_URL is required. Copy apps/api/.env.example to .env.')
 }
 
 const client = postgres(connectionString)
