@@ -2,6 +2,19 @@
 
 Este archivo registra los cambios incluidos en cada commit solicitado. Las entradas se agregan antes de crear el commit.
 
+## Sin commit - Carpeta de banners, nota de despliegue y repaso de la documentacion
+
+- El banner de marca se movio a `apps/web/src/assets/Banners/`, su propia carpeta para las proximas piezas.
+- `docs/pending-work.md` suma la seccion de despliegue con las opciones evaluadas y por que Kubernetes no hace falta en este tamano.
+- Se reviso toda la documentacion contra el codigo actual:
+  - `README.md`: arranque completo con copia de `.env` y seed, resumen real de funcionalidades, seccion de administracion, comandos y Node 22.12 como minimo.
+  - `docs/README.md`: el indice incluye `pending-work.md`, que faltaba.
+  - `docs/inventory.md`: se documentaron los ajustes manuales y el efecto de los cambios de estado de un pedido sobre el inventario; el flujo de pagos queda marcado como pendiente.
+  - `docs/development.md`: el minimo de Node pasa a 22.12 y las pruebas visuales describen la instalacion real de Playwright en vez de los MCP de Codex.
+  - `docs/api.md`: `lang` en los ejemplos de carrito, aclaracion de que los ejemplos usan la copia base y correccion del numero de pedido (`ORD-001000`).
+  - `docs/architecture.md`: el objetivo menciona cuentas, administracion e idiomas, y la lista de estados incluye lanzamiento y rol de cliente.
+- Al verificar los comandos documentados se encontro que `inventory:release-expired` nunca terminaba: la conexion a la base mantenia vivo el proceso. Ahora cierra al final, que es lo que necesita para poder programarse.
+
 ## Sin commit - La marca pasa de "Coordillera" a "Cordillera"
 
 - Se corrigio el nombre en todo el repositorio: interfaz, documentacion, paquetes (`@cordillera/api`, `@cordillera/web`), `docker-compose.yml` y datos de prueba.

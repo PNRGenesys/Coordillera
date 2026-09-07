@@ -42,10 +42,24 @@ Los desplegables de color y talla en `/shop` se arman con los productos de la pa
 - `collections.heroImageUrl` sigue guardandose y devolviendose, pero ya no se muestra en ninguna parte desde que el hero del inicio pasa a ser el banner de marca. Su lugar natural seria la cabecera de `/shop/:collection`.
 - Falta renombrar la carpeta local del proyecto y el repositorio en GitHub, que siguen como `Coordillera`. De la carpeta sale ademas el nombre del contenedor (`coordillera-database-1`).
 
-## 6. Vulnerabilidades de dependencias
+## 6. Despliegue
+
+Hoy no existe: todo corre en local (`npm run dev`) contra el PostgreSQL de `docker-compose.yml`. Falta decidir donde vive la tienda y montar el despliegue continuo.
+
+Opciones razonables para el tamano actual, de menos a mas operacion:
+
+| Opcion | Encaje |
+| --- | --- |
+| Railway, Render o Fly.io | Despliegan la API y la base gestionada desde el repositorio, con poca configuracion. Lo mas directo para empezar. |
+| Cloud Run o App Runner con una base gestionada | Contenedor sin servidor, escala a cero y cobra por uso. Mas piezas que armar. |
+| Kubernetes | No hace falta. Orquesta contenedores en varios nodos y aqui hay un contenedor; solo se justificaria con varias replicas, autoescalado fino o despliegues sin caida. |
+
+El frontend es estatico (`npm run build` deja `apps/web/dist`), asi que puede ir en cualquier CDN. Antes de publicar hacen falta los pendientes de seguridad de `docs/architecture.md`: gestion de secretos, limitacion de tasa, observabilidad y copias de seguridad.
+
+## 7. Vulnerabilidades de dependencias
 
 `npm audit` reporta 4 moderadas, todas heredadas de `esbuild` via `drizzle-kit`. `npm audit fix --force` implica un downgrade incompatible de `drizzle-kit`; no se aplico.
 
-## 7. Producto todavia no empezado
+## 8. Producto todavia no empezado
 
 Pasarela de pago, envios y costos, correos transaccionales y contenido editorial real (textos y colecciones definitivas).

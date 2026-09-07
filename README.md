@@ -6,7 +6,7 @@ Monorepo para e-commerce de ropa: frontend React/TypeScript, API Fastify y Postg
 
 ## Requisitos
 
-- Node.js 20.19 o superior
+- Node.js 22.12 o superior (las pruebas no arrancan con versiones anteriores; ver [docs/development.md](./docs/development.md))
 - npm 10 o superior
 - Docker Desktop (para ejecutar PostgreSQL localmente)
 
@@ -14,8 +14,10 @@ Monorepo para e-commerce de ropa: frontend React/TypeScript, API Fastify y Postg
 
 ```powershell
 npm install
+Copy-Item apps/api/.env.example apps/api/.env
 npm.cmd run db:up
 npm.cmd run db:migrate --workspace=@cordillera/api
+npm.cmd run db:seed    --workspace=@cordillera/api
 npm run dev
 ```
 
@@ -23,27 +25,45 @@ npm run dev
 - API: `http://localhost:3000`
 - Estado de la API: `http://localhost:3000/api/health`
 
-La configuración de desarrollo de la API se encuentra en `apps/api/.env`. Antes de publicar, reemplaza `ADMIN_API_KEY` y usa una URL de PostgreSQL administrada.
+`apps/api/.env` es obligatorio: sin `DATABASE_URL` fallan las migraciones, el seed, el servidor y las pruebas. Sin ejecutar el seed el catalogo aparece vacio.
 
-## Dominio de tienda
+## Que incluye
 
-- Catálogo con productos, variantes de talla/color, SKU, precios e imágenes.
-- Inventario por variante con cantidad disponible, reservada y punto de reposición.
-- Historial inmutable de movimientos: ingreso, ajuste, reserva, liberación, venta y devolución.
-- Carrito basado en sesión, cliente, direcciones y pedidos con una copia inmutable del precio/SKU.
-- Reserva atómica de inventario al crear el pedido. Las reservas vencen a los 20 minutos y pueden liberarse con `npm.cmd run inventory:release-expired --workspace=@cordillera/api` (prográmalo cada pocos minutos en producción).
-- Rutas administrativas protegidas por el encabezado `x-admin-key`. La autenticación completa de usuarios y el panel administrativo visual se construirán antes del lanzamiento.
+- Catalogo con colecciones, categorias, productos, variantes de talla/color, SKU, precios, imagenes y guias de tallas.
+- Inventario por variante con unidades disponibles, reservadas y punto de reposicion, mas un historial inmutable de movimientos.
+- Carrito por sesion, checkout con reserva atomica de inventario y pedidos con copia inmutable de precio y SKU.
+- Cuentas de cliente con registro e inicio de sesion (contrasenas con `scrypt`, sesion en cookie `httpOnly`).
+- Panel de administracion en `/admin` para editar productos y precios, ajustar existencias y gestionar pedidos y envios.
+- Interfaz y catalogo en espanol e ingles: los textos fijos viven en el frontend y las traducciones del catalogo en la base de datos.
 
-Por decisión de alcance, no hay pasarela de pagos todavía: los pedidos se crean como `pending_payment`.
+Por decision de alcance no hay pasarela de pagos todavia: los pedidos se crean como `pending_payment`.
+
+## Administracion
+
+Las rutas `/api/admin/*` exigen la sesion de una cuenta con rol `admin`. El rol se otorga por linea de comandos sobre una cuenta ya registrada en la tienda:
+
+```powershell
+npm.cmd run admin:grant --workspace=@cordillera/api -- correo@ejemplo.com
+```
+
+## Comandos
+
+```powershell
+npm run dev         # frontend y API
+npm run test        # pruebas de ambos proyectos (la API necesita PostgreSQL en ejecucion)
+npm run typecheck   # comprobacion de tipos
+npm run build       # compilacion de produccion
+```
+
+Reservas de inventario vencidas (programar cada pocos minutos en produccion):
+
+```powershell
+npm.cmd run inventory:release-expired --workspace=@cordillera/api
+```
 
 ## Base de datos
 
-```powershell
-docker compose up -d
-npm.cmd run db:migrate --workspace=@cordillera/api
-```
-
-La migración versionada está en `apps/api/drizzle/`. Para explorar datos localmente:
+El esquema es la fuente de verdad (`apps/api/src/db/schema.ts`) y las migraciones versionadas viven en `apps/api/drizzle/`. Para explorar datos localmente:
 
 ```powershell
 npm.cmd run db:studio --workspace=@cordillera/api
@@ -53,6 +73,7 @@ npm.cmd run db:studio --workspace=@cordillera/api
 
 ```text
 apps/
-  web/  # React + Vite
+  web/  # React + Vite + Linaria + RTK Query
   api/  # Fastify + Drizzle + PostgreSQL
+docs/   # documentacion del proyecto
 ```

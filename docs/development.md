@@ -2,7 +2,7 @@
 
 ## Requisitos
 
-- Node.js 20.19 o posterior.
+- Node.js 22.12 o posterior (ver "Version de Node para las pruebas").
 - npm 10 o posterior.
 - Docker Desktop en ejecucion.
 
@@ -68,7 +68,15 @@ Son pruebas de integracion contra la base de datos local: crean sus propios prod
 
 ## Pruebas visuales
 
-Los MCP de Playwright y Chrome DevTools estan configurados globalmente para Codex. Reinicia Codex o abre una sesion nueva despues de configurarlos para que esten disponibles.
+Playwright no es dependencia del repositorio: se instala aparte cuando hace falta recorrer la tienda y comparar capturas.
+
+```powershell
+npm.cmd init -y
+npm.cmd install playwright
+npx.cmd playwright install chromium
+```
+
+El recorrido habitual cubre inicio, catalogo, coleccion, detalle, producto agotado, carrito, checkout, cuenta y panel de administracion, en 1440x1000 y 390x844, revisando que no haya errores de consola ni imagenes rotas. Para el idioma, la comprobacion util es cargar cada pagina en español, cambiar a ingles y comparar el texto: lo que no cambia deberia ser solo la marca, los numeros y las tallas por letra.
 
 ## Datos de demostracion
 

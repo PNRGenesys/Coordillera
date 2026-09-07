@@ -43,6 +43,8 @@ Las rutas de catálogo y carrito aceptan `lang=es|en` (por defecto `es`). Las co
 
 Los colores y las tallas viajan como `{ value, label }`: `value` es el texto almacenado, que es con el que se filtra, y `label` el texto traducido que se muestra.
 
+Los ejemplos de abajo muestran la copia base (`lang=en`); con `lang=es` los mismos campos llegan traducidos.
+
 ### Catálogo paginado
 
 ```
@@ -90,7 +92,7 @@ GET /api/products?lang=&collection=&category=&color=&size=&availability=all|in_s
 ### Carrito
 
 ```
-GET /api/cart/:sessionId
+GET /api/cart/:sessionId?lang=
 ```
 
 ```json
@@ -105,9 +107,9 @@ GET /api/cart/:sessionId
 ```
 
 ```
-POST /api/cart/items    { "sessionId": "uuid", "variantId": "uuid", "quantity": 1 }   -> 201 CartView
-PATCH /api/cart/items   { "sessionId": "uuid", "variantId": "uuid", "quantity": 2 }   -> CartView
-DELETE /api/cart/items?sessionId=uuid&variantId=uuid                                   -> CartView
+POST /api/cart/items?lang=    { "sessionId": "uuid", "variantId": "uuid", "quantity": 1 }   -> 201 CartView
+PATCH /api/cart/items?lang=   { "sessionId": "uuid", "variantId": "uuid", "quantity": 2 }   -> CartView
+DELETE /api/cart/items?sessionId=uuid&variantId=uuid&lang=                                   -> CartView
 ```
 
 ### Checkout
@@ -133,7 +135,7 @@ DELETE /api/cart/items?sessionId=uuid&variantId=uuid                            
 Respuesta `201`:
 
 ```json
-{ "number": "1000", "status": "pending_payment", "totalCents": 37800000, "currency": "COP", "reservationExpiresInMinutes": 20 }
+{ "number": "ORD-001000", "status": "pending_payment", "totalCents": 37800000, "currency": "COP", "reservationExpiresInMinutes": 20 }
 ```
 
 ### Reposición

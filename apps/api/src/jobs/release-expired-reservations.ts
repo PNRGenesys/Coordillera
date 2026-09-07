@@ -14,3 +14,5 @@ const expired = await db.transaction(async (tx) => {
 })
 
 console.info(`Released reservations: ${expired}`)
+// The database pool keeps the event loop alive, so the job has to close itself to be schedulable.
+process.exit(0)

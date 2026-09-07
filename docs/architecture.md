@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Cordillera es una tienda de ropa en un monorepo. La base actual cubre catalogo, inventario, carrito y pedidos sin pasarela de pagos.
+Cordillera es una tienda de ropa en un monorepo. La base actual cubre catalogo bilingue, inventario, carrito, pedidos sin pasarela de pagos, cuentas de cliente y un panel de administracion.
 
 ## Componentes
 
@@ -32,7 +32,9 @@ Los importes se almacenan como enteros en centavos (`priceCents`) para evitar er
 ## Estados
 
 - Producto: `draft`, `active`, `archived`.
+- Lanzamiento de producto: `available`, `preorder`, `coming_soon`.
 - Pedido: `pending_payment`, `paid`, `processing`, `fulfilled`, `shipped`, `delivered`, `cancelled`, `refunded`.
+- Cliente: `customer`, `admin`.
 
 Los pedidos se crean como `pending_payment`. La integracion de pagos no forma parte del alcance actual.
 
@@ -74,7 +76,7 @@ Antes de produccion se implementaran verificacion de correo y recuperacion de co
 - `react-router-dom` define las paginas (`src/pages/`): inicio, catalogo con filtros, detalle de producto, carrito, checkout, cuenta, panel de administracion y 404, todas dentro de un `Layout` compartido (`src/components/Layout.tsx`).
 - Los campos de formulario (`Field`, `FieldRow`, `Input`, `Select`, `PrimaryButton`) viven en `src/components/primitives.ts` y los comparten checkout, cuenta y panel de administracion.
 - Idioma: la interfaz es en español por defecto, con un selector ES/EN que traduce la copia estatica (`src/lib/translations.ts` + `src/lib/use-translation.ts`) y pide el catalogo en ese idioma (ver "Idiomas"). La moneda de la tienda es COP y no cambia con el idioma; solo cambia el formato numerico (`es-CO` / `en-US`).
-- Las imagenes de catalogo son fichas de diseno generadas con IA para probar la tienda y se sirven como estaticos desde `apps/web/public/products/<slug>.jpg` y `apps/web/public/collections/<slug>.jpg`. El seed arma la URL a partir del slug, asi que agregar un producto implica dejar su imagen con el mismo nombre. `apps/web/src/assets/brand-banner.jpg` es el banner de marca que ocupa el hero del inicio y `apps/web/public/favicon.ico` el icono de la pestana.
+- Las imagenes de catalogo son fichas de diseno generadas con IA para probar la tienda y se sirven como estaticos desde `apps/web/public/products/<slug>.jpg` y `apps/web/public/collections/<slug>.jpg`. El seed arma la URL a partir del slug, asi que agregar un producto implica dejar su imagen con el mismo nombre. Los banners de marca viven en `apps/web/src/assets/Banners/` (hoy `brand-banner.jpg`, que ocupa el hero del inicio) y `apps/web/public/favicon.ico` es el icono de la pestana.
 
 ## Pruebas
 

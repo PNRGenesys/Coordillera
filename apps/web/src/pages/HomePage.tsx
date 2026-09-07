@@ -1,6 +1,6 @@
 import { styled } from '@linaria/react'
 import { Link } from 'react-router-dom'
-import brandBanner from '../assets/brand-banner.jpg'
+import brandBanner from '../assets/Banners/brand-banner.jpg'
 import { ProductCard } from '../components/ProductCard'
 import { Kicker, ProductGrid, Section, SectionHeader, SectionTitle, TextLink } from '../components/primitives'
 import { StateMessage } from '../components/StateMessage'
