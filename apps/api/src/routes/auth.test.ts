@@ -7,9 +7,9 @@ import { customers } from '../db/schema.js'
 
 /** Integration tests: they need the local PostgreSQL instance from docker compose. */
 
-const NEW_EMAIL = 'auth-test-new@coordillera.test'
-const GUEST_EMAIL = 'auth-test-guest@coordillera.test'
-const PASSWORD = 'coordillera-test-password'
+const NEW_EMAIL = 'auth-test-new@cordillera.test'
+const GUEST_EMAIL = 'auth-test-guest@cordillera.test'
+const PASSWORD = 'cordillera-test-password'
 
 function registerPayload(email: string) {
   return { email, password: PASSWORD, firstName: 'Ana', lastName: 'Ruiz', phone: '3001234567' }
@@ -68,7 +68,7 @@ describe('POST /api/auth/register', () => {
   })
 
   it('rejects a password shorter than the minimum', async () => {
-    const response = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { ...registerPayload('auth-test-short@coordillera.test'), password: 'short' } })
+    const response = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { ...registerPayload('auth-test-short@cordillera.test'), password: 'short' } })
     expect(response.statusCode).toBe(400)
     expect(response.json().code).toBe('invalid_request')
   })
@@ -83,7 +83,7 @@ describe('POST /api/auth/login', () => {
 
   it('rejects a wrong password and an unknown email with the same error', async () => {
     const wrongPassword = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: NEW_EMAIL, password: 'not-the-password' } })
-    const unknownEmail = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'auth-test-missing@coordillera.test', password: PASSWORD } })
+    const unknownEmail = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'auth-test-missing@cordillera.test', password: PASSWORD } })
 
     expect(wrongPassword.statusCode).toBe(401)
     expect(unknownEmail.statusCode).toBe(401)

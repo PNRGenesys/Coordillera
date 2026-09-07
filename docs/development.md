@@ -12,8 +12,8 @@
 npm.cmd install
 Copy-Item apps/api/.env.example apps/api/.env
 npm.cmd run db:up
-npm.cmd run db:migrate --workspace=@coordillera/api
-npm.cmd run db:seed    --workspace=@coordillera/api
+npm.cmd run db:migrate --workspace=@cordillera/api
+npm.cmd run db:seed    --workspace=@cordillera/api
 npm.cmd run dev
 ```
 
@@ -26,7 +26,7 @@ La configuracion local de API esta en `apps/api/.env`. Nunca se deben versionar 
 ## Panel de administracion
 
 1. Registrar la cuenta desde la tienda (`/account`).
-2. Ejecutar `npm.cmd run admin:grant --workspace=@coordillera/api -- <correo>`.
+2. Ejecutar `npm.cmd run admin:grant --workspace=@cordillera/api -- <correo>`.
 3. Volver a cargar la tienda: aparece el enlace `Admin` en la cabecera y `/admin` queda disponible.
 
 El rol solo se otorga por linea de comandos; no hay forma de ascender una cuenta desde la interfaz.
@@ -39,16 +39,16 @@ El rol solo se otorga por linea de comandos; no hay forma de ascender una cuenta
 | `npm.cmd run build` | Compila ambos proyectos. |
 | `npm.cmd run typecheck` | Comprueba tipos. |
 | `npm.cmd run test` | Ejecuta las pruebas de ambos proyectos. |
-| `npm.cmd run test --workspace=@coordillera/web` | Pruebas unitarias del frontend (Vitest, entorno `jsdom`). |
-| `npm.cmd run test --workspace=@coordillera/api` | Pruebas de integracion de la API (Vitest, entorno `node`). Requieren PostgreSQL en ejecucion. |
+| `npm.cmd run test --workspace=@cordillera/web` | Pruebas unitarias del frontend (Vitest, entorno `jsdom`). |
+| `npm.cmd run test --workspace=@cordillera/api` | Pruebas de integracion de la API (Vitest, entorno `node`). Requieren PostgreSQL en ejecucion. |
 | `npm.cmd run db:up` | Inicia PostgreSQL. |
 | `npm.cmd run db:down` | Detiene PostgreSQL. |
-| `npm.cmd run db:generate --workspace=@coordillera/api` | Genera migracion tras editar el esquema. |
-| `npm.cmd run db:migrate --workspace=@coordillera/api` | Aplica migraciones. |
-| `npm.cmd run db:seed --workspace=@coordillera/api` | Carga datos de demostracion idempotentes (productos, colecciones, inventario). |
-| `npm.cmd run db:studio --workspace=@coordillera/api` | Abre Drizzle Studio. |
-| `npm.cmd run inventory:release-expired --workspace=@coordillera/api` | Libera reservas de inventario vencidas (programar cada pocos minutos en produccion). |
-| `npm.cmd run admin:grant --workspace=@coordillera/api -- <correo>` | Convierte en administrador una cuenta ya registrada en la tienda. |
+| `npm.cmd run db:generate --workspace=@cordillera/api` | Genera migracion tras editar el esquema. |
+| `npm.cmd run db:migrate --workspace=@cordillera/api` | Aplica migraciones. |
+| `npm.cmd run db:seed --workspace=@cordillera/api` | Carga datos de demostracion idempotentes (productos, colecciones, inventario). |
+| `npm.cmd run db:studio --workspace=@cordillera/api` | Abre Drizzle Studio. |
+| `npm.cmd run inventory:release-expired --workspace=@cordillera/api` | Libera reservas de inventario vencidas (programar cada pocos minutos en produccion). |
+| `npm.cmd run admin:grant --workspace=@cordillera/api -- <correo>` | Convierte en administrador una cuenta ya registrada en la tienda. |
 
 ### Version de Node para las pruebas
 
@@ -72,6 +72,6 @@ Los MCP de Playwright y Chrome DevTools estan configurados globalmente para Code
 
 ## Datos de demostracion
 
-`npm.cmd run db:seed --workspace=@coordillera/api` carga datos idempotentes: productos activos, colecciones, categorias, guias de talla, inventario y movimientos. Uno de los productos queda deliberadamente con stock 0 (para probar el estado agotado) y otro en `preorder`. Los productos que ya no estan en el seed quedan archivados. Sin ejecutar el seed, el catalogo muestra su estado vacio.
+`npm.cmd run db:seed --workspace=@cordillera/api` carga datos idempotentes: productos activos, colecciones, categorias, guias de talla, inventario y movimientos. Uno de los productos queda deliberadamente con stock 0 (para probar el estado agotado) y otro en `preorder`. Los productos que ya no estan en el seed quedan archivados. Sin ejecutar el seed, el catalogo muestra su estado vacio.
 
 Las imagenes del catalogo son fichas de diseno generadas con IA y sirven unicamente para probar la tienda (ver `docs/pending-work.md`).

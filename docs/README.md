@@ -1,4 +1,4 @@
-# Documentacion de Coordillera
+# Documentacion de Cordillera
 
 Esta carpeta es la fuente de referencia tecnica y funcional del proyecto.
 

@@ -29,6 +29,9 @@ const Header = styled.header`
   background: var(--color-background);
   border-bottom: 1px solid var(--color-border);
   display: flex;
+  /* With the account and admin links the row no longer fits on a phone, so it wraps instead of colliding. */
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
   justify-content: space-between;
   padding: 1.25rem clamp(1.25rem, 4vw, 4rem);
   position: sticky;
@@ -117,7 +120,7 @@ export function Layout() {
   const dispatch = useAppDispatch()
   const sessionId = useAppSelector(selectSessionId)
   const language = useAppSelector(selectLanguage)
-  const { data: cart } = useGetCartQuery(sessionId)
+  const { data: cart } = useGetCartQuery({ sessionId, lang: language })
   const { account } = useAccount()
   const { t } = useTranslation()
 
@@ -125,8 +128,8 @@ export function Layout() {
     <Page className={globalTheme}>
       <Notice>{t('notice.default')}</Notice>
       <Header>
-        <Brand to="/">Coordillera</Brand>
-        <Nav aria-label="Primary navigation">
+        <Brand to="/">Cordillera</Brand>
+        <Nav aria-label={t('nav.primaryLabel')}>
           <NavLink to="/shop" className={({ isActive }) => (isActive ? `${navItem} active` : navItem)}>
             {t('nav.shop')}
           </NavLink>
@@ -134,7 +137,7 @@ export function Layout() {
         <HeaderActions>
           {account?.role === 'admin' && <HeaderLink to="/admin">{t('admin.nav')}</HeaderLink>}
           <HeaderLink to="/account">{account ? accountDisplayName(account) : t('account.navGuest')}</HeaderLink>
-          <HeaderLink to="/cart" aria-label="Cart">
+          <HeaderLink to="/cart" aria-label={t('nav.cartLabel')}>
             {t('nav.bag', { count: cart?.itemCount ?? 0 })}
           </HeaderLink>
           <LanguageToggle type="button" onClick={() => dispatch(setLanguage(language === 'es' ? 'en' : 'es'))}>
@@ -147,7 +150,7 @@ export function Layout() {
         <div>
           <FooterTitle>{t('footer.title')}</FooterTitle>
         </div>
-        <FooterAction href="mailto:hello@coordillera.local">{t('footer.action')}</FooterAction>
+        <FooterAction href="mailto:hello@cordillera.local">{t('footer.action')}</FooterAction>
       </Footer>
     </Page>
   )

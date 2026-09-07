@@ -87,9 +87,9 @@ const CheckoutAction = styled(Link)`
 `
 
 export function CartPage() {
-  const { t, numberLocale } = useTranslation()
+  const { t, numberLocale, language } = useTranslation()
   const sessionId = useAppSelector(selectSessionId)
-  const { data: cart, isLoading, isError } = useGetCartQuery(sessionId)
+  const { data: cart, isLoading, isError } = useGetCartQuery({ sessionId, lang: language })
   const [updateCartItem, updateState] = useUpdateCartItemMutation()
   const [removeCartItem, removeState] = useRemoveCartItemMutation()
 
@@ -112,10 +112,10 @@ export function CartPage() {
           <QuantityStepper
             value={item.quantity}
             max={item.availableUnits}
-            onChange={(quantity) => updateCartItem({ sessionId, variantId: item.variantId, quantity })}
+            onChange={(quantity) => updateCartItem({ sessionId, variantId: item.variantId, quantity, lang: language })}
           />
           <Price minCents={item.unitPriceCents * item.quantity} maxCents={item.unitPriceCents * item.quantity} currency={cart.currency} />
-          <RemoveButton type="button" onClick={() => removeCartItem({ sessionId, variantId: item.variantId })}>
+          <RemoveButton type="button" onClick={() => removeCartItem({ sessionId, variantId: item.variantId, lang: language })}>
             {t('cart.remove')}
           </RemoveButton>
         </Line>

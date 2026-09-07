@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { customers } from '../db/schema.js'
 
-/** Promotes an existing account to administrator: `npm run admin:grant --workspace=@coordillera/api -- <email>`. */
+/** Promotes an existing account to administrator: `npm run admin:grant --workspace=@cordillera/api -- <email>`. */
 const email = process.argv[2]
 if (!email) {
   console.error('Usage: admin:grant -- <email>')

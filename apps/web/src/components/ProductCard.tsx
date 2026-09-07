@@ -86,7 +86,7 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <Card>
       <Visual>
-        {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <Placeholder>{product.colors[0] ?? 'Coordillera'}</Placeholder>}
+        {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <Placeholder>{product.colors[0]?.label ?? 'Cordillera'}</Placeholder>}
         {badge && <Badge>{badge}</Badge>}
       </Visual>
       <Name>{product.name}</Name>

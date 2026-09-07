@@ -21,21 +21,31 @@ Funciona sobre el catalogo, el inventario y los pedidos, pero le falta:
 - Registro de quien hizo cada cambio; hoy solo los ajustes de inventario dejan rastro con nota.
 - Paginacion y busqueda: la pagina carga el catalogo y los pedidos completos de una sola vez.
 - Reembolsar un pedido ya cobrado no devuelve unidades al inventario, porque su reserva ya se consumio.
+- No permite editar las traducciones: al cambiar un nombre o una descripcion solo se modifica la copia base, y la version en espanol sigue viniendo del seed.
 
-## 3. Facetas del catalogo
+## 3. Idiomas
+
+La tienda funciona en español e ingles, pero:
+
+- El checkout y las rutas administrativas no traducen sus respuestas; solo catalogo y carrito aceptan `lang`.
+- Los nombres de coleccion `Wildspirit` y de producto en ingles se dejaron sin traducir a proposito por ser nombres de marca; conviene confirmarlo con el negocio.
+- No hay forma de cargar traducciones fuera del seed (ver el punto anterior sobre el panel).
+
+## 4. Facetas del catalogo
 
 Los desplegables de color y talla en `/shop` se arman con los productos de la pagina visible, asi que al filtrar por un color el desplegable deja de ofrecer los demas (hay que volver a "Todas" para cambiar). Solucion adecuada: un endpoint de facetas que devuelva colores y tallas del catalogo completo segun coleccion y categoria.
 
-## 4. Imagenes y assets
+## 5. Imagenes y assets
 
 - Las imagenes del catalogo son fichas de diseno generadas con IA, cargadas solo para probar la tienda. Hay que reemplazarlas por fotografia real de producto, en formato vertical, porque la tarjeta las recorta al centro con `object-fit: cover`.
-- `apps/web/src/assets/hero-collection.png` pesa ~2 MB, entra en el bundle y solo se usa como respaldo del hero cuando no hay coleccion destacada; conviene comprimirla o eliminarla.
 - No se sirven varios tamanos ni formatos modernos de imagen.
+- `collections.heroImageUrl` sigue guardandose y devolviendose, pero ya no se muestra en ninguna parte desde que el hero del inicio pasa a ser el banner de marca. Su lugar natural seria la cabecera de `/shop/:collection`.
+- Falta renombrar la carpeta local del proyecto y el repositorio en GitHub, que siguen como `Coordillera`. De la carpeta sale ademas el nombre del contenedor (`coordillera-database-1`).
 
-## 5. Vulnerabilidades de dependencias
+## 6. Vulnerabilidades de dependencias
 
 `npm audit` reporta 4 moderadas, todas heredadas de `esbuild` via `drizzle-kit`. `npm audit fix --force` implica un downgrade incompatible de `drizzle-kit`; no se aplico.
 
-## 6. Producto todavia no empezado
+## 7. Producto todavia no empezado
 
 Pasarela de pago, envios y costos, correos transaccionales y contenido editorial real (textos y colecciones definitivas).

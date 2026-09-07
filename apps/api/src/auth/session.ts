@@ -7,7 +7,7 @@ import { db } from '../db/client.js'
 import { customerSessions, customers } from '../db/schema.js'
 import { DomainError } from '../errors.js'
 
-export const SESSION_COOKIE = 'coordillera_session'
+export const SESSION_COOKIE = 'cordillera_session'
 
 const TOKEN_BYTES = 32
 

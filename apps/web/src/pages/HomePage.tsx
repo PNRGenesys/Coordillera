@@ -1,6 +1,6 @@
 import { styled } from '@linaria/react'
 import { Link } from 'react-router-dom'
-import heroFallback from '../assets/hero-collection.png'
+import brandBanner from '../assets/brand-banner.jpg'
 import { ProductCard } from '../components/ProductCard'
 import { Kicker, ProductGrid, Section, SectionHeader, SectionTitle, TextLink } from '../components/primitives'
 import { StateMessage } from '../components/StateMessage'
@@ -52,11 +52,17 @@ const Action = styled(Link)`
   text-decoration: none;
   text-transform: uppercase;
 `
+/* The banner is a brand lockup, so it is shown whole instead of cropped to fill the panel. */
 const HeroImage = styled.img`
+  background: var(--color-brand-canvas);
   height: 100%;
   min-height: 420px;
-  object-fit: cover;
+  object-fit: contain;
   width: 100%;
+
+  @media (max-width: 760px) {
+    min-height: 0;
+  }
 `
 const Categories = styled.div`
   background: var(--color-border);
@@ -95,10 +101,10 @@ const CategoryName = styled.h3`
 `
 
 export function HomePage() {
-  const { t } = useTranslation()
-  const { data: collections } = useGetCollectionsQuery()
-  const { data: categories } = useGetCategoriesQuery()
-  const { data: latest, isLoading, isError } = useGetProductsQuery({ pageSize: LATEST_PRODUCTS_COUNT })
+  const { t, language } = useTranslation()
+  const { data: collections } = useGetCollectionsQuery(language)
+  const { data: categories } = useGetCategoriesQuery(language)
+  const { data: latest, isLoading, isError } = useGetProductsQuery({ lang: language, pageSize: LATEST_PRODUCTS_COUNT })
   const featuredCollection = collections?.find((collection) => collection.featured) ?? collections?.[0]
 
   return (
@@ -110,7 +116,7 @@ export function HomePage() {
           <Lead>{featuredCollection?.tagline ?? t('home.leadFallback')}</Lead>
           <Action to={featuredCollection ? `/shop/${featuredCollection.slug}` : '/shop'}>{t('home.exploreCollection')}</Action>
         </HeroCopy>
-        <HeroImage src={featuredCollection?.heroImageUrl ?? heroFallback} alt={featuredCollection?.name ?? 'Coordillera'} />
+        <HeroImage src={brandBanner} alt="Cordillera" />
       </Hero>
       <Section>
         <SectionHeader>

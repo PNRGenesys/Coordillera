@@ -2,6 +2,30 @@
 
 Este archivo registra los cambios incluidos en cada commit solicitado. Las entradas se agregan antes de crear el commit.
 
+## Sin commit - La marca pasa de "Coordillera" a "Cordillera"
+
+- Se corrigio el nombre en todo el repositorio: interfaz, documentacion, paquetes (`@cordillera/api`, `@cordillera/web`), `docker-compose.yml` y datos de prueba.
+- La base de datos y su rol se renombraron en caliente (`ALTER DATABASE` / `ALTER ROLE`), sin perder clientes, productos ni pedidos.
+- Cambian dos identificadores del navegador: la cookie de sesion (`cordillera_session`) y la clave del carrito en `localStorage`, asi que las sesiones y los carritos abiertos se reinician una vez.
+- Pendiente fuera del alcance del repositorio: renombrar la carpeta local del proyecto y el repositorio en GitHub, de donde sale tambien el nombre del contenedor de PostgreSQL.
+
+## Sin commit - Banner de marca e icono del sitio
+
+- Se agrego `apps/web/public/favicon.ico` y su enlace en `index.html`.
+- El hero del inicio pasa a mostrar el banner de marca (`apps/web/src/assets/brand-banner.jpg`), completo y sin recortar sobre un fondo oscuro (`--color-brand-canvas`).
+- Se elimino `hero-collection.png`: el bundle baja de 2,09 MB a 106 KB de imagen.
+- La cabecera se envuelve en pantallas angostas; con los enlaces de cuenta y administracion ya no cabia en una sola linea en movil.
+
+## Sin commit - Traduccion del contenido del catalogo
+
+- Se detecto con Playwright que el selector ES/EN solo cambiaba la interfaz: categorias, coleccion, nombres, descripciones, colores, tallas y guia de tallas venian de la base en un solo idioma.
+- Se agrego una columna `translations` (jsonb) en `products`, `product_variants`, `categories`, `collections` y `size_guides`. Las columnas guardan la copia base y el jsonb los reemplazos por idioma, con respaldo a la copia base cuando falta una traduccion.
+- Las rutas de catalogo y carrito aceptan `lang=es|en`; un idioma no soportado responde `400`. En el frontend `lang` es parte de los argumentos de cada consulta, de modo que cambiar de idioma invalida la cache y vuelve a pedir el contenido.
+- Los colores y las tallas se devuelven como `{ value, label }`: se filtra por el valor almacenado y se muestra el traducido, asi que los filtros siguen funcionando en ambos idiomas.
+- El seed carga la version en espanol de las 11 fichas y refresca solo las traducciones al reejecutarse, para no pisar lo que se edite desde el panel.
+- Se tradujeron los ultimos textos fijos de la interfaz: etiquetas de accesibilidad de la navegacion y la bolsa, y el marcador del correo de reposicion.
+- Pruebas nuevas: 4 de la API sobre idioma, respaldo de traduccion y filtrado por facetas.
+
 ## Sin commit - Rol de administrador y panel de gestion
 
 - `customers.role` distingue `customer` de `admin`. Las rutas `/api/admin/*` pasaron del encabezado `x-admin-key` a la sesion del cliente: `401` sin sesion, `403` sin rol. Se elimino `ADMIN_API_KEY`.
@@ -43,7 +67,7 @@ Este archivo registra los cambios incluidos en cada commit solicitado. Las entra
 
 - Se verifico el flujo completo contra la API en ejecucion: catalogo, filtros, detalle con guia de tallas, carrito, checkout (`ORD-001000`), reposicion y rutas administrativas.
 - Se agregaron pruebas de integracion de la API (`apps/api/src/routes/checkout.test.ts`): reserva atomica de la ultima unidad, rechazo `out_of_stock` del pedido competidor, carrito conservado tras el rechazo, `cart_not_found` y `cart_empty`.
-- Se agrego el script `test` en la raiz y en `@coordillera/api`; el logger de Fastify se silencia bajo `NODE_ENV=test`.
+- Se agrego el script `test` en la raiz y en `@cordillera/api`; el logger de Fastify se silencia bajo `NODE_ENV=test`.
 - Se corrigio la fuga de DOM entre pruebas del frontend (`cleanup` de Testing Library en `test-setup.ts`), que hacia fallar la prueba de ultima existencia.
 - Detalle de producto: la cantidad vuelve a 1 al cambiar de variante y se muestra el error cuando la API rechaza el agregado.
 - Carrito: se muestran los errores de actualizar y quitar lineas.

@@ -3,12 +3,12 @@ import { hashPassword, verifyPassword } from './password.js'
 
 describe('password hashing', () => {
   it('accepts the original password', async () => {
-    const hash = await hashPassword('coordillera-test-password')
-    expect(await verifyPassword('coordillera-test-password', hash)).toBe(true)
+    const hash = await hashPassword('cordillera-test-password')
+    expect(await verifyPassword('cordillera-test-password', hash)).toBe(true)
   })
 
   it('rejects a different password', async () => {
-    const hash = await hashPassword('coordillera-test-password')
+    const hash = await hashPassword('cordillera-test-password')
     expect(await verifyPassword('another-password', hash)).toBe(false)
   })
 
@@ -18,6 +18,6 @@ describe('password hashing', () => {
   })
 
   it('rejects a stored value that is not a scrypt hash', async () => {
-    expect(await verifyPassword('coordillera-test-password', 'plain-text')).toBe(false)
+    expect(await verifyPassword('cordillera-test-password', 'plain-text')).toBe(false)
   })
 })

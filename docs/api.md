@@ -24,7 +24,7 @@ Base local: `http://localhost:3000`. Todas las solicitudes y respuestas usan JSO
 
 ### Cuentas de cliente
 
-La sesión viaja en la cookie `coordillera_session` (`httpOnly`, `sameSite=lax`, `secure` en produccion). La API guarda solo el hash SHA-256 del token y la contraseña con `scrypt`. Su duración sale de `SESSION_TTL_DAYS`.
+La sesión viaja en la cookie `cordillera_session` (`httpOnly`, `sameSite=lax`, `secure` en produccion). La API guarda solo el hash SHA-256 del token y la contraseña con `scrypt`. Su duración sale de `SESSION_TTL_DAYS`.
 
 ```
 POST /api/auth/register  { "email": "...", "password": "...", "firstName": "...", "lastName": "...", "phone": "..." }  -> 201 AccountProfile
@@ -37,10 +37,16 @@ GET  /api/auth/me                                                               
 
 Registrar un correo que ya usó un invitado en el checkout reclama ese cliente en vez de duplicarlo. Si el correo ya tiene contraseña, responde `409 email_taken`. Un correo desconocido y una contraseña incorrecta devuelven el mismo `401 invalid_credentials`, para no revelar qué cuentas existen.
 
+### Idioma del contenido
+
+Las rutas de catálogo y carrito aceptan `lang=es|en` (por defecto `es`). Las columnas guardan la copia en inglés y `translations` los reemplazos por idioma; si falta la traducción de un campo, responde con la copia base en vez de dejarlo vacío. Un idioma no soportado devuelve `400 invalid_request`.
+
+Los colores y las tallas viajan como `{ value, label }`: `value` es el texto almacenado, que es con el que se filtra, y `label` el texto traducido que se muestra.
+
 ### Catálogo paginado
 
 ```
-GET /api/products?collection=&category=&color=&size=&availability=all|in_stock&page=&pageSize=
+GET /api/products?lang=&collection=&category=&color=&size=&availability=all|in_stock&page=&pageSize=
 ```
 
 ```json
@@ -54,7 +60,7 @@ GET /api/products?collection=&category=&color=&size=&availability=all|in_stock&p
       "release": "available", "availableAt": null,
       "categorySlug": "t-shirts", "collectionSlug": "wildspirit", "collectionName": "Wildspirit",
       "minPriceCents": 18900000, "maxPriceCents": 18900000,
-      "colors": ["Black Purple", "Grey Orange", "Cream Blue"], "sizes": ["S", "M", "L", "XL", "XXL"],
+      "colors": [{ "value": "Black Purple", "label": "Negro y morado" }], "sizes": [{ "value": "S", "label": "S" }],
       "availableUnits": 90, "imageUrl": "/products/furry-casual-tee.jpg"
     }
   ]
@@ -142,7 +148,7 @@ Toda respuesta de error tiene la forma `{ code, message, details }`. Códigos ac
 
 ## Administracion
 
-Toda ruta administrativa exige la cookie de sesión de una cuenta con `role = admin`. Sin sesión responde `401 unauthenticated`; con una cuenta normal, `403 forbidden`. El rol se otorga con `npm.cmd run admin:grant --workspace=@coordillera/api -- <correo>`.
+Toda ruta administrativa exige la cookie de sesión de una cuenta con `role = admin`. Sin sesión responde `401 unauthenticated`; con una cuenta normal, `403 forbidden`. El rol se otorga con `npm.cmd run admin:grant --workspace=@cordillera/api -- <correo>`.
 
 | Metodo | Ruta | Funcion |
 | --- | --- | --- |

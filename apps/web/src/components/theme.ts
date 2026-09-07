@@ -11,6 +11,8 @@ export const globalTheme = css`
       --color-surface-alt: #ece9e1;
       --color-surface-hover: #d7dec5;
       --color-danger: #8a3b3b;
+      /* Matches the background of the brand banner, so the image blends with the panel that holds it. */
+      --color-brand-canvas: #101010;
       --font-display: Georgia, serif;
       --font-body: Inter, ui-sans-serif, system-ui, sans-serif;
     }

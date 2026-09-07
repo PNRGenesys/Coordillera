@@ -17,8 +17,8 @@ const baseProduct: CatalogProductSummary = {
   collectionName: null,
   minPriceCents: 12_5000,
   maxPriceCents: 12_5000,
-  colors: ['Moss'],
-  sizes: ['M'],
+  colors: [{ value: 'Moss', label: 'Musgo' }],
+  sizes: [{ value: 'M', label: 'M' }],
   availableUnits: 10,
   imageUrl: null,
 }

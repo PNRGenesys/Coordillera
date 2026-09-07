@@ -24,7 +24,7 @@ Al crear un pedido, la API ejecuta una transaccion y aumenta `reserved` solo si 
 La reserva expira 20 minutos despues de creada. En produccion debe ejecutarse regularmente:
 
 ```powershell
-npm.cmd run inventory:release-expired --workspace=@coordillera/api
+npm.cmd run inventory:release-expired --workspace=@cordillera/api
 ```
 
 Ese proceso libera la reserva, registra un movimiento `release` y permite que el stock vuelva a estar disponible.

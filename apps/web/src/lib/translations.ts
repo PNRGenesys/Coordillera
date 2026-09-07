@@ -8,6 +8,8 @@ export const numberLocaleByLanguage: Record<Language, string> = {
 const es = {
   'nav.shop': 'Tienda',
   'nav.bag': 'Bolsa ({count})',
+  'nav.primaryLabel': 'Navegación principal',
+  'nav.cartLabel': 'Bolsa de compra',
   'notice.default': 'Prendas con propósito, hechas en lotes pequeños. Las preventas se envían según se indique en cada pieza.',
   'footer.title': 'Sé el primero en conocer nuevos lanzamientos y reposiciones.',
   'footer.action': 'Unirme a la lista',
@@ -48,6 +50,7 @@ const es = {
   'product.restockNotice': 'Esta variante está agotada. Déjanos tu correo y te avisaremos cuando vuelva a haber existencias.',
   'product.restockConfirmation': 'Quedaste en la lista de reposición de esta pieza.',
   'product.notifyMe': 'Avisarme',
+  'product.restockEmailPlaceholder': 'tucorreo@ejemplo.com',
   'product.lastStockDetail': 'Última existencia — solo quedan {units}.',
   'product.addToBag': 'Añadir a la bolsa',
   'product.addedToBag': 'Añadido a la bolsa',
@@ -167,6 +170,8 @@ const es = {
 const en: Record<keyof typeof es, string> = {
   'nav.shop': 'Shop',
   'nav.bag': 'Bag ({count})',
+  'nav.primaryLabel': 'Primary navigation',
+  'nav.cartLabel': 'Shopping bag',
   'notice.default': 'Purposeful layers, made in small batches. Preorders ship as noted on each piece.',
   'footer.title': 'Receive new drops and restocks first.',
   'footer.action': 'Join the list',
@@ -207,6 +212,7 @@ const en: Record<keyof typeof es, string> = {
   'product.restockNotice': 'This variant is sold out. Leave your email and we will notify you on restock.',
   'product.restockConfirmation': 'You are on the restock list for this piece.',
   'product.notifyMe': 'Notify me',
+  'product.restockEmailPlaceholder': 'you@example.com',
   'product.lastStockDetail': 'Last stock — only {units} left.',
   'product.addToBag': 'Add to bag',
   'product.addedToBag': 'Added to bag',

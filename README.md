@@ -1,4 +1,4 @@
-# Coordillera
+# Cordillera
 
 > La documentacion detallada esta en [docs/README.md](./docs/README.md).
 
@@ -15,7 +15,7 @@ Monorepo para e-commerce de ropa: frontend React/TypeScript, API Fastify y Postg
 ```powershell
 npm install
 npm.cmd run db:up
-npm.cmd run db:migrate --workspace=@coordillera/api
+npm.cmd run db:migrate --workspace=@cordillera/api
 npm run dev
 ```
 
@@ -31,7 +31,7 @@ La configuración de desarrollo de la API se encuentra en `apps/api/.env`. Antes
 - Inventario por variante con cantidad disponible, reservada y punto de reposición.
 - Historial inmutable de movimientos: ingreso, ajuste, reserva, liberación, venta y devolución.
 - Carrito basado en sesión, cliente, direcciones y pedidos con una copia inmutable del precio/SKU.
-- Reserva atómica de inventario al crear el pedido. Las reservas vencen a los 20 minutos y pueden liberarse con `npm.cmd run inventory:release-expired --workspace=@coordillera/api` (prográmalo cada pocos minutos en producción).
+- Reserva atómica de inventario al crear el pedido. Las reservas vencen a los 20 minutos y pueden liberarse con `npm.cmd run inventory:release-expired --workspace=@cordillera/api` (prográmalo cada pocos minutos en producción).
 - Rutas administrativas protegidas por el encabezado `x-admin-key`. La autenticación completa de usuarios y el panel administrativo visual se construirán antes del lanzamiento.
 
 Por decisión de alcance, no hay pasarela de pagos todavía: los pedidos se crean como `pending_payment`.
@@ -40,13 +40,13 @@ Por decisión de alcance, no hay pasarela de pagos todavía: los pedidos se crea
 
 ```powershell
 docker compose up -d
-npm.cmd run db:migrate --workspace=@coordillera/api
+npm.cmd run db:migrate --workspace=@cordillera/api
 ```
 
 La migración versionada está en `apps/api/drizzle/`. Para explorar datos localmente:
 
 ```powershell
-npm.cmd run db:studio --workspace=@coordillera/api
+npm.cmd run db:studio --workspace=@cordillera/api
 ```
 
 ## Estructura

@@ -3,7 +3,7 @@ import type { AccountProfile } from '../store/catalog-api'
 import { accountDisplayName, accountErrorKey } from './account'
 
 function profile(overrides: Partial<AccountProfile> = {}): AccountProfile {
-  return { id: 'id', email: 'ana@coordillera.test', firstName: 'Ana', lastName: 'Ruiz', phone: null, role: 'customer', ...overrides }
+  return { id: 'id', email: 'ana@cordillera.test', firstName: 'Ana', lastName: 'Ruiz', phone: null, role: 'customer', ...overrides }
 }
 
 describe('accountErrorKey', () => {
@@ -27,6 +27,6 @@ describe('accountDisplayName', () => {
   })
 
   it('uses the email when the account has no first name', () => {
-    expect(accountDisplayName(profile({ firstName: null }))).toBe('ana@coordillera.test')
+    expect(accountDisplayName(profile({ firstName: null }))).toBe('ana@cordillera.test')
   })
 })

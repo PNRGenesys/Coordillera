@@ -1,5 +1,5 @@
 {
-  "name": "coordillera",
+  "name": "cordillera",
   "private": true,
   "version": "0.1.0",
   "workspaces": [
@@ -7,8 +7,8 @@
   ],
   "scripts": {
     "dev": "concurrently --names web,api --prefix-colors cyan,green \"npm run dev:web\" \"npm run dev:api\"",
-    "dev:web": "npm run dev --workspace=@coordillera/web",
-    "dev:api": "npm run dev --workspace=@coordillera/api",
+    "dev:web": "npm run dev --workspace=@cordillera/web",
+    "dev:api": "npm run dev --workspace=@cordillera/api",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "build": "npm run build --workspaces --if-present",

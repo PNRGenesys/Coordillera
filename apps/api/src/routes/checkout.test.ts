@@ -10,7 +10,7 @@ import { cartItems, carts, customers, inventoryItems, inventoryMovements, orders
 
 const TEST_PRODUCT_SLUG = 'checkout-test-product'
 const TEST_SKU = 'CHECKOUT-TEST-SKU'
-const TEST_EMAIL = 'checkout-test@coordillera.test'
+const TEST_EMAIL = 'checkout-test@cordillera.test'
 const SINGLE_UNIT_STOCK = 1
 
 const shippingAddress = { line1: 'Cra 1 #2-3', city: 'Bogota', region: 'Cundinamarca', postalCode: '110111', country: 'CO' }

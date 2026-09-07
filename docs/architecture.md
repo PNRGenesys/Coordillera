@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Coordillera es una tienda de ropa en un monorepo. La base actual cubre catalogo, inventario, carrito y pedidos sin pasarela de pagos.
+Cordillera es una tienda de ropa en un monorepo. La base actual cubre catalogo, inventario, carrito y pedidos sin pasarela de pagos.
 
 ## Componentes
 
@@ -42,12 +42,21 @@ Un cliente puede comprar como invitado o con cuenta. La cuenta vive en la misma 
 
 - Contrasenas con `scrypt` de `node:crypto` (`src/auth/password.ts`), sal por contrasena, comparacion en tiempo constante. No se agrego ninguna dependencia de cifrado.
 - La sesion es un token aleatorio guardado en `customer_sessions`; la base solo almacena su hash SHA-256, asi que un volcado de la base no permite suplantar a nadie.
-- El token viaja en la cookie `coordillera_session` (`httpOnly`, `sameSite=lax`, `secure` en produccion), no en `localStorage`.
+- El token viaja en la cookie `cordillera_session` (`httpOnly`, `sameSite=lax`, `secure` en produccion), no en `localStorage`.
 - El frontend no guarda la sesion en Redux: `GET /api/auth/me` es la unica fuente, envuelta en `src/lib/use-account.ts`.
+
+## Idiomas
+
+La tienda funciona en español (por defecto) e ingles, y la traduccion tiene dos mitades:
+
+- Los textos de la interfaz viven en `apps/web/src/lib/translations.ts`, sin dependencias de i18n.
+- El contenido del catalogo vive en la base: las columnas guardan la copia como fue escrita y una columna `translations` (jsonb) guarda los reemplazos por idioma en `products`, `product_variants`, `categories`, `collections` y `size_guides`. Si falta la traduccion de un campo, la API responde con la copia base; nunca queda vacio.
+- La API recibe el idioma como `lang` en la consulta (`apps/api/src/i18n.ts`). En el frontend `lang` forma parte de los argumentos de cada consulta de RTK Query, asi que cambiar de idioma cambia la clave de cache y vuelve a pedir el contenido.
+- Los colores y las tallas se devuelven como `{ value, label }`: se filtra por `value` (el texto almacenado) y se muestra `label`. De otro modo, filtrar por un color traducido no encontraria nada.
 
 ## Administracion
 
-`customers.role` distingue `customer` de `admin`; no hay tabla de roles aparte porque solo existen esos dos niveles. Las rutas `/api/admin/*` exigen una sesion cuyo cliente sea administrador (`401` sin sesion, `403` con una cuenta normal), la misma cookie que usa la tienda. El rol se otorga fuera de la aplicacion con `npm run admin:grant --workspace=@coordillera/api -- <correo>`, asi que nadie puede promoverse desde la interfaz.
+`customers.role` distingue `customer` de `admin`; no hay tabla de roles aparte porque solo existen esos dos niveles. Las rutas `/api/admin/*` exigen una sesion cuyo cliente sea administrador (`401` sin sesion, `403` con una cuenta normal), la misma cookie que usa la tienda. El rol se otorga fuera de la aplicacion con `npm run admin:grant --workspace=@cordillera/api -- <correo>`, asi que nadie puede promoverse desde la interfaz.
 
 El panel `/admin` permite editar nombre, estado y lanzamiento de cada producto, precio de cada variante, ajustar existencias con nota (queda en `inventory_movements`) y gestionar pedidos: estado, transportadora y numero de guia.
 
@@ -64,8 +73,8 @@ Antes de produccion se implementaran verificacion de correo y recuperacion de co
 - Redux mantiene solo estado de cliente que no pertenece al servidor: el `sessionId` del carrito (`src/store/cart-slice.ts`) y el idioma de interfaz (`src/store/ui-slice.ts`). El conteo del carrito sale siempre de `getCart`, nunca duplicado en el store.
 - `react-router-dom` define las paginas (`src/pages/`): inicio, catalogo con filtros, detalle de producto, carrito, checkout, cuenta, panel de administracion y 404, todas dentro de un `Layout` compartido (`src/components/Layout.tsx`).
 - Los campos de formulario (`Field`, `FieldRow`, `Input`, `Select`, `PrimaryButton`) viven en `src/components/primitives.ts` y los comparten checkout, cuenta y panel de administracion.
-- Idioma: la interfaz es en español por defecto, con un selector ES/EN que traduce toda la copia estatica (`src/lib/translations.ts` + `src/lib/use-translation.ts`). La moneda de la tienda es COP y no cambia con el idioma; solo cambia el formato numerico (`es-CO` / `en-US`).
-- Las imagenes de catalogo son fichas de diseno generadas con IA para probar la tienda y se sirven como estaticos desde `apps/web/public/products/<slug>.jpg` y `apps/web/public/collections/<slug>.jpg`. El seed arma la URL a partir del slug, asi que agregar un producto implica dejar su imagen con el mismo nombre. `apps/web/src/assets/` guarda solo el respaldo del hero cuando no hay coleccion destacada.
+- Idioma: la interfaz es en español por defecto, con un selector ES/EN que traduce la copia estatica (`src/lib/translations.ts` + `src/lib/use-translation.ts`) y pide el catalogo en ese idioma (ver "Idiomas"). La moneda de la tienda es COP y no cambia con el idioma; solo cambia el formato numerico (`es-CO` / `en-US`).
+- Las imagenes de catalogo son fichas de diseno generadas con IA para probar la tienda y se sirven como estaticos desde `apps/web/public/products/<slug>.jpg` y `apps/web/public/collections/<slug>.jpg`. El seed arma la URL a partir del slug, asi que agregar un producto implica dejar su imagen con el mismo nombre. `apps/web/src/assets/brand-banner.jpg` es el banner de marca que ocupa el hero del inicio y `apps/web/public/favicon.ico` el icono de la pestana.
 
 ## Pruebas
 

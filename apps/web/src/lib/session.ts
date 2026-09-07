@@ -1,4 +1,4 @@
-const SESSION_STORAGE_KEY = 'coordillera-cart-session'
+const SESSION_STORAGE_KEY = 'cordillera-cart-session'
 
 export function getOrCreateSessionId(): string {
   const existing = window.localStorage.getItem(SESSION_STORAGE_KEY)

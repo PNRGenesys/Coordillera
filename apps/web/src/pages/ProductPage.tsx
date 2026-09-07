@@ -101,10 +101,10 @@ const Confirmation = styled.p`
 `
 
 export function ProductPage() {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const { slug } = useParams<{ slug: string }>()
   const sessionId = useAppSelector(selectSessionId)
-  const { data: product, isLoading, isError } = useGetProductQuery(slug ?? '', { skip: !slug })
+  const { data: product, isLoading, isError } = useGetProductQuery({ slug: slug ?? '', lang: language }, { skip: !slug })
   const [addCartItem, addCartItemState] = useAddCartItemMutation()
   const [requestRestock, requestRestockState] = useRequestRestockMutation()
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(undefined)
@@ -129,7 +129,7 @@ export function ProductPage() {
 
   function addToCart(): void {
     if (!selectedVariant) return
-    void addCartItem({ sessionId, variantId: selectedVariant.id, quantity })
+    void addCartItem({ sessionId, variantId: selectedVariant.id, quantity, lang: language })
   }
 
   function selectVariant(variantId: string): void {
@@ -173,7 +173,7 @@ export function ProductPage() {
                   <RestockInput
                     type="email"
                     required
-                    placeholder="you@example.com"
+                    placeholder={t('product.restockEmailPlaceholder')}
                     value={restockEmail}
                     onChange={(event) => setRestockEmail(event.target.value)}
                   />

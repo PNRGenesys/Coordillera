@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { getOrCreateSessionId } from './session'
 
-const SESSION_STORAGE_KEY = 'coordillera-cart-session'
+const SESSION_STORAGE_KEY = 'cordillera-cart-session'
 
 describe('getOrCreateSessionId', () => {
   beforeEach(() => {

@@ -10,9 +10,9 @@ import { carts, customers, inventoryItems, inventoryMovements, orders, productVa
 
 const TEST_PRODUCT_SLUG = 'admin-test-product'
 const TEST_SKU = 'ADMIN-TEST-SKU'
-const ADMIN_EMAIL = 'admin-test-admin@coordillera.test'
-const SHOPPER_EMAIL = 'admin-test-shopper@coordillera.test'
-const PASSWORD = 'coordillera-test-password'
+const ADMIN_EMAIL = 'admin-test-admin@cordillera.test'
+const SHOPPER_EMAIL = 'admin-test-shopper@cordillera.test'
+const PASSWORD = 'cordillera-test-password'
 const INITIAL_STOCK = 5
 const ORDERED_UNITS = 2
 

@@ -1,10 +1,14 @@
 import { z } from 'zod'
 import { config } from './config.js'
+import { LOCALES } from './i18n.js'
 
 export const sessionSchema = z.object({ sessionId: z.string().uuid() })
 export const slugSchema = z.object({ slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/) })
 
-export const catalogQuerySchema = z.object({
+/** Every read of catalog copy accepts the language of the interface. */
+export const localeQuerySchema = z.object({ lang: z.enum(LOCALES).default('es') })
+
+export const catalogQuerySchema = localeQuerySchema.extend({
   collection: z.string().optional(),
   category: z.string().optional(),
   color: z.string().optional(),

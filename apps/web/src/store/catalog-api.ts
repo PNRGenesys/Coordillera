@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
+import type { Language } from '../lib/translations'
 
 export type ProductRelease = 'available' | 'preorder' | 'coming_soon'
 
@@ -19,6 +20,9 @@ export type Category = {
   position: number
 }
 
+/** `value` is the stored text used to filter; `label` is the same attribute in the language of the interface. */
+export type CatalogFacet = { value: string; label: string }
+
 export type CatalogProductSummary = {
   id: string
   slug: string
@@ -30,8 +34,8 @@ export type CatalogProductSummary = {
   collectionName: string | null
   minPriceCents: number
   maxPriceCents: number
-  colors: string[]
-  sizes: string[]
+  colors: CatalogFacet[]
+  sizes: CatalogFacet[]
   availableUnits: number
   imageUrl: string | null
 }
@@ -45,7 +49,9 @@ export type CatalogPage = {
 
 export type CatalogAvailability = 'all' | 'in_stock'
 
+/** `lang` travels in every catalog request: it is part of the cache key, so switching language refetches the copy. */
 export type CatalogFilters = {
+  lang: Language
   collection?: string
   category?: string
   color?: string
@@ -227,36 +233,36 @@ export const catalogApi = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: '/api/', credentials: 'include' }),
   tagTypes: ['Catalog', 'Cart', 'Account', 'Admin'],
   endpoints: (build) => ({
-    getCollections: build.query<Collection[], void>({
-      query: () => 'collections',
+    getCollections: build.query<Collection[], Language>({
+      query: (lang) => ({ url: 'collections', params: { lang } }),
       providesTags: ['Catalog'],
     }),
-    getCategories: build.query<Category[], void>({
-      query: () => 'categories',
+    getCategories: build.query<Category[], Language>({
+      query: (lang) => ({ url: 'categories', params: { lang } }),
       providesTags: ['Catalog'],
     }),
-    getProducts: build.query<CatalogPage, CatalogFilters | void>({
+    getProducts: build.query<CatalogPage, CatalogFilters>({
       query: (filters) => ({ url: 'products', params: withoutUndefinedFilters({ ...filters }) }),
       providesTags: ['Catalog'],
     }),
-    getProduct: build.query<ProductDetail, string>({
-      query: (slug) => `products/${slug}`,
+    getProduct: build.query<ProductDetail, { slug: string; lang: Language }>({
+      query: ({ slug, lang }) => ({ url: `products/${slug}`, params: { lang } }),
       providesTags: ['Catalog'],
     }),
-    getCart: build.query<CartView, string>({
-      query: (sessionId) => `cart/${sessionId}`,
+    getCart: build.query<CartView, { sessionId: string; lang: Language }>({
+      query: ({ sessionId, lang }) => ({ url: `cart/${sessionId}`, params: { lang } }),
       providesTags: ['Cart'],
     }),
-    addCartItem: build.mutation<CartView, { sessionId: string; variantId: string; quantity: number }>({
-      query: (body) => ({ url: 'cart/items', method: 'POST', body }),
+    addCartItem: build.mutation<CartView, { sessionId: string; variantId: string; quantity: number; lang: Language }>({
+      query: ({ lang, ...body }) => ({ url: 'cart/items', method: 'POST', body, params: { lang } }),
       invalidatesTags: ['Cart'],
     }),
-    updateCartItem: build.mutation<CartView, { sessionId: string; variantId: string; quantity: number }>({
-      query: (body) => ({ url: 'cart/items', method: 'PATCH', body }),
+    updateCartItem: build.mutation<CartView, { sessionId: string; variantId: string; quantity: number; lang: Language }>({
+      query: ({ lang, ...body }) => ({ url: 'cart/items', method: 'PATCH', body, params: { lang } }),
       invalidatesTags: ['Cart'],
     }),
-    removeCartItem: build.mutation<CartView, { sessionId: string; variantId: string }>({
-      query: ({ sessionId, variantId }) => ({ url: 'cart/items', method: 'DELETE', params: { sessionId, variantId } }),
+    removeCartItem: build.mutation<CartView, { sessionId: string; variantId: string; lang: Language }>({
+      query: ({ sessionId, variantId, lang }) => ({ url: 'cart/items', method: 'DELETE', params: { sessionId, variantId, lang } }),
       invalidatesTags: ['Cart'],
     }),
     checkout: build.mutation<CheckoutConfirmation, CheckoutInput>({
