@@ -12,6 +12,7 @@ import {
   PrimaryButton,
   Section,
   SectionHeader,
+  Select,
   SectionTitle,
   TextButton,
   TextLink,
@@ -19,6 +20,7 @@ import {
 import { StateMessage } from '../components/StateMessage'
 import { accountErrorKey, accountFullName } from '../lib/account'
 import { toAvatarDataUrl } from '../lib/avatar'
+import { COLOMBIA_REGIONS, PHONE_EXAMPLE } from '../lib/store-country'
 import { useAccount } from '../lib/use-account'
 import { useTranslation } from '../lib/use-translation'
 import { useUpdateProfileMutation, type AccountProfile, type ShippingAddress } from '../store/catalog-api'
@@ -31,7 +33,7 @@ type ProfileForm = {
   address: ShippingAddress
 }
 
-const emptyAddress: ShippingAddress = { line1: '', line2: '', city: '', region: '', postalCode: '', country: 'CO' }
+const emptyAddress: ShippingAddress = { line1: '', line2: '', city: '', region: '', postalCode: '' }
 
 function toProfileForm(account: AccountProfile): ProfileForm {
   return {
@@ -45,7 +47,7 @@ function toProfileForm(account: AccountProfile): ProfileForm {
 
 /** An address is only sent when it has something in it; half filled would be rejected by the API. */
 function addressToSend(address: ShippingAddress): ShippingAddress | null {
-  const filled = [address.line1, address.city, address.region, address.postalCode, address.country].some((value) => value.trim())
+  const filled = [address.line1, address.city, address.region, address.postalCode].some((value) => value.trim())
   return filled ? address : null
 }
 
@@ -89,7 +91,7 @@ export function AccountEditPage() {
   }
 
   function updateAddressField(field: keyof ShippingAddress) {
-    return (event: ChangeEvent<HTMLInputElement>) => {
+    return (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const { value } = event.target
       setProfile((current) => (current ? { ...current, address: { ...current.address, [field]: value } } : current))
     }
@@ -158,7 +160,7 @@ export function AccountEditPage() {
         </Field>
         <Field>
           {t('account.phone')}
-          <Input autoComplete="tel" value={profile.phone} onChange={updateProfileField('phone')} />
+          <Input autoComplete="tel" inputMode="tel" placeholder={PHONE_EXAMPLE} value={profile.phone} onChange={updateProfileField('phone')} />
         </Field>
 
         <Legend>{t('account.shippingTitle')}</Legend>
@@ -178,19 +180,16 @@ export function AccountEditPage() {
           </Field>
           <Field>
             {t('checkout.region')}
-            <Input autoComplete="address-level1" value={profile.address.region} onChange={updateAddressField('region')} />
+            <Select autoComplete="address-level1" value={profile.address.region} onChange={updateAddressField('region')}>
+              <option value="">{t('checkout.regionPlaceholder')}</option>
+              {COLOMBIA_REGIONS.map((region) => <option key={region} value={region}>{region}</option>)}
+            </Select>
           </Field>
         </FieldRow>
-        <FieldRow>
-          <Field>
-            {t('checkout.postalCode')}
-            <Input autoComplete="postal-code" value={profile.address.postalCode} onChange={updateAddressField('postalCode')} />
-          </Field>
-          <Field>
-            {t('checkout.country')}
-            <Input maxLength={2} autoComplete="country" value={profile.address.country} onChange={updateAddressField('country')} />
-          </Field>
-        </FieldRow>
+        <Field>
+          {t('checkout.postalCode')}
+          <Input autoComplete="postal-code" value={profile.address.postalCode} onChange={updateAddressField('postalCode')} />
+        </Field>
 
         <PrimaryButton type="submit" disabled={updateProfileState.isLoading}>
           {t('account.save')}

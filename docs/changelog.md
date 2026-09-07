@@ -2,6 +2,13 @@
 
 Este archivo registra los cambios incluidos en cada commit solicitado. Las entradas se agregan antes de crear el commit.
 
+## La tienda asume Colombia
+
+- Los formularios dejan de pedir el pais. La API lo completa con `STORE_COUNTRY` (`CO` por defecto), asi que la direccion guardada lo sigue teniendo y volver a pedirlo es cambiar una variable.
+- El departamento pasa de campo libre a lista con los 32 departamentos mas Bogota D.C. La API sigue aceptando cualquier texto, para no repetir la lista en los dos lados.
+- El telefono muestra un movil colombiano como ejemplo, la ficha de la cuenta ya no repite el pais en cada direccion y las fechas de pedidos del panel se leen en `America/Bogota`.
+- Se corrigio de paso un fallo del formulario de perfil: enviaba el telefono vacio y la API lo rechazaba por longitud minima. Ahora un campo vacio borra el dato.
+
 ## Perfil editable del cliente
 
 - `/account` abre con los datos de la cuenta en modo lectura: foto, nombre, correo, telefono y direccion en una linea. El boton "Modificar perfil" lleva a `/account/edit`, que es donde vive el formulario; al guardar vuelve a la ficha, ya actualizada.

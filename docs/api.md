@@ -37,7 +37,9 @@ PATCH /api/auth/me       { "email"?, "firstName"?, "lastName"?, "phone"?, "avata
 
 `AccountProfile = { id, email, firstName, lastName, phone, role, avatar, shippingAddress }`, con `role` igual a `customer` o `admin`. La contraseña nunca sale en una respuesta.
 
-En `PATCH` todos los campos son opcionales y solo se cambia lo que llega. `avatar` es una imagen PNG, JPEG o WebP en forma de data URL, limitada por `AVATAR_MAX_CHARACTERS`; `shippingAddress` usa la misma forma que el checkout. Enviar `null` en cualquiera de los dos los borra. Cambiar el correo a uno que ya tiene cuenta responde `409 email_taken`.
+La dirección omite `country`: la API lo completa con `STORE_COUNTRY` (`CO`), porque la tienda envía a un solo país. Enviarlo explícitamente sigue siendo válido.
+
+En `PATCH` todos los campos son opcionales y solo se cambia lo que llega. Un `phone` vacío borra el teléfono en vez de fallar por longitud mínima. `avatar` es una imagen PNG, JPEG o WebP en forma de data URL, limitada por `AVATAR_MAX_CHARACTERS`; `shippingAddress` usa la misma forma que el checkout. Enviar `null` en cualquiera de los dos los borra. Cambiar el correo a uno que ya tiene cuenta responde `409 email_taken`.
 
 Registrar un correo que ya usó un invitado en el checkout reclama ese cliente en vez de duplicarlo. Si el correo ya tiene contraseña, responde `409 email_taken`. Un correo desconocido y una contraseña incorrecta devuelven el mismo `401 invalid_credentials`, para no revelar qué cuentas existen.
 

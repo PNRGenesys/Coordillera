@@ -10,6 +10,8 @@ function readNumber(name: string, fallback: number): number {
 
 export const config = {
   currency: process.env.STORE_CURRENCY ?? 'COP',
+  /** The store only ships inside one country for now, so addresses take it by default. */
+  country: process.env.STORE_COUNTRY ?? 'CO',
   reservationTtlMs: readNumber('RESERVATION_TTL_MINUTES', 20) * MINUTE_IN_MS,
   catalogPageSize: readNumber('CATALOG_PAGE_SIZE', 24),
   catalogMaxPageSize: readNumber('CATALOG_MAX_PAGE_SIZE', 60),

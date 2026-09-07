@@ -28,9 +28,9 @@ export function accountFullName(account: AccountProfile): string {
   return full || account.email
 }
 
-/** One line address for reading, keeping the parts the customer actually filled. */
+/** One line address for reading. The country is left out: the store ships to a single one. */
 export function formatAddress(address: ShippingAddress): string {
-  return [address.line1, address.line2, address.city, address.region, address.postalCode, address.country]
+  return [address.line1, address.line2, address.city, address.region, address.postalCode]
     .map((part) => part?.trim())
     .filter(Boolean)
     .join(', ')

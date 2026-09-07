@@ -98,7 +98,7 @@ const es = {
   'checkout.city': 'Ciudad',
   'checkout.region': 'Departamento',
   'checkout.postalCode': 'Código postal',
-  'checkout.country': 'País (ISO-2)',
+  'checkout.regionPlaceholder': 'Elige tu departamento',
   'checkout.placeOrder': 'Confirmar pedido',
 
   'account.navGuest': 'Cuenta',
@@ -281,7 +281,7 @@ const en: Record<keyof typeof es, string> = {
   'checkout.city': 'City',
   'checkout.region': 'Region',
   'checkout.postalCode': 'Postal code',
-  'checkout.country': 'Country (ISO-2)',
+  'checkout.regionPlaceholder': 'Choose your department',
   'checkout.placeOrder': 'Place order',
 
   'account.navGuest': 'Account',

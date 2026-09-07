@@ -123,6 +123,12 @@ describe('PATCH /api/auth/me', () => {
     expect(response.json().code).toBe('email_taken')
   })
 
+  it('clears the phone when the field is sent empty, instead of refusing it', async () => {
+    const response = await app.inject({ method: 'PATCH', url: '/api/auth/me', headers: { cookie }, payload: { phone: '' } })
+    expect(response.statusCode).toBe(200)
+    expect(response.json().phone).toBeNull()
+  })
+
   it('clears the picture and the address with null', async () => {
     const response = await app.inject({ method: 'PATCH', url: '/api/auth/me', headers: { cookie }, payload: { avatar: null, shippingAddress: null } })
     expect(response.json()).toMatchObject({ avatar: null, shippingAddress: null })

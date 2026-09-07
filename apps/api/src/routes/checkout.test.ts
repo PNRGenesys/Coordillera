@@ -26,6 +26,7 @@ let inventoryItemId: string
 const firstSessionId = randomUUID()
 const secondSessionId = randomUUID()
 const createdOrderNumbers: string[] = []
+const checkoutSessionIds: string[] = []
 
 beforeAll(async () => {
   app = await buildApp()
@@ -44,7 +45,7 @@ afterAll(async () => {
   if (createdOrderNumbers.length) await db.delete(orders).where(inArray(orders.number, createdOrderNumbers))
   await db.delete(restockRequests).where(eq(restockRequests.variantId, variantId))
   await db.delete(customers).where(inArray(customers.email, [TEST_EMAIL, RESTOCK_EMAIL]))
-  await db.delete(carts).where(inArray(carts.sessionId, [firstSessionId, secondSessionId]))
+  await db.delete(carts).where(inArray(carts.sessionId, [firstSessionId, secondSessionId, ...checkoutSessionIds]))
   await db.delete(inventoryMovements).where(eq(inventoryMovements.inventoryItemId, inventoryItemId))
   await db.delete(products).where(eq(products.slug, TEST_PRODUCT_SLUG))
   await app.close()
@@ -77,6 +78,24 @@ describe('POST /api/checkout', () => {
   it('empties the cart of the order that went through', async () => {
     const cart = await app.inject({ method: 'GET', url: `/api/cart/${firstSessionId}` })
     expect(cart.json().items).toEqual([])
+  })
+
+  it('fills the country in by itself, because the store ships to a single one', async () => {
+    const sessionId = randomUUID()
+    checkoutSessionIds.push(sessionId)
+    await db.update(inventoryItems).set({ onHand: SINGLE_UNIT_STOCK + 1 }).where(eq(inventoryItems.id, inventoryItemId))
+    await app.inject({ method: 'POST', url: '/api/cart/items', payload: { sessionId, variantId, quantity: SINGLE_UNIT_STOCK } })
+
+    const { country, ...addressWithoutCountry } = shippingAddress
+    const response = await app.inject({
+      method: 'POST', url: '/api/checkout',
+      payload: { ...checkoutPayload(sessionId), shippingAddress: addressWithoutCountry },
+    })
+    expect(response.statusCode).toBe(201)
+    createdOrderNumbers.push(response.json().number)
+
+    const [order] = await db.select({ shippingAddress: orders.shippingAddress }).from(orders).where(eq(orders.number, response.json().number))
+    expect(order?.shippingAddress).toMatchObject({ ...addressWithoutCountry, country })
   })
 
   it('rejects a checkout for an unknown session', async () => {

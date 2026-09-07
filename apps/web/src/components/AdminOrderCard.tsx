@@ -1,6 +1,7 @@
 import { styled } from '@linaria/react'
 import { useState, type FormEvent } from 'react'
 import { formatPrice } from '../lib/format-price'
+import { STORE_TIME_ZONE } from '../lib/store-country'
 import { orderStatusKeys } from '../lib/order-status'
 import { useTranslation } from '../lib/use-translation'
 import { useUpdateAdminOrderMutation, type AdminOrder, type OrderStatus } from '../store/catalog-api'
@@ -63,7 +64,7 @@ export function AdminOrderCard({ order }: AdminOrderCardProps) {
   return (
     <Card>
       <OrderNumber>{order.number}</OrderNumber>
-      <Muted>{t('admin.orderDate', { date: new Date(order.createdAt).toLocaleString(numberLocale) })}</Muted>
+      <Muted>{t('admin.orderDate', { date: new Date(order.createdAt).toLocaleString(numberLocale, { timeZone: STORE_TIME_ZONE }) })}</Muted>
       <Detail>{t('admin.customer', { name: customerName, email: order.customerEmail })}</Detail>
       <Detail>{t('admin.orderTotal', { amount: formatPrice(order.totalCents, order.currency, numberLocale) })}</Detail>
       <Legend>{t('admin.shippingAddress')}</Legend>

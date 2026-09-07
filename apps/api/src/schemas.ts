@@ -25,14 +25,17 @@ export const cartItemSchema = sessionSchema.extend({
 export const cartItemUpdateSchema = cartItemSchema.extend({ quantity: z.number().int().min(0).max(config.cartMaxQuantityPerItem) })
 export const cartItemRemovalSchema = sessionSchema.extend({ variantId: z.string().uuid() })
 
-/** Shared by the checkout and by the address a customer keeps on file. */
+/**
+ * Shared by the checkout and by the address a customer keeps on file. The country is not asked for
+ * while the store ships to a single one, so it defaults to `STORE_COUNTRY` instead of being required.
+ */
 export const shippingAddressSchema = z.object({
   line1: z.string().min(3).max(180),
   line2: z.string().max(180).optional(),
   city: z.string().min(2).max(120),
   region: z.string().min(2).max(120),
   postalCode: z.string().min(2).max(20),
-  country: z.string().length(2),
+  country: z.string().length(2).default(config.country),
 })
 
 export const checkoutSchema = sessionSchema.extend({
@@ -57,12 +60,20 @@ const avatarSchema = z.string()
   .max(config.avatarMaxCharacters)
   .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/, { message: 'The picture must be a PNG, JPEG or WebP data URL' })
 
+/**
+ * A field left empty in the form means the customer removed what was there, so it clears the column
+ * instead of failing the minimum length.
+ */
+function clearable(schema: z.ZodString) {
+  return z.union([schema, z.literal('')]).transform((value) => value || null).optional()
+}
+
 /** Every field is optional so the account page can save only what changed; `null` clears the picture. */
 export const profileUpdateSchema = z.object({
   email: z.string().email().max(320).optional(),
   firstName: z.string().min(1).max(100).optional(),
   lastName: z.string().min(1).max(100).optional(),
-  phone: z.string().min(7).max(40).optional(),
+  phone: clearable(z.string().min(7).max(40)),
   avatar: avatarSchema.nullable().optional(),
   shippingAddress: shippingAddressSchema.nullable().optional(),
 })

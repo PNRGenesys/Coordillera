@@ -50,12 +50,12 @@ describe('accountFullName', () => {
 })
 
 describe('formatAddress', () => {
-  it('reads as one line', () => {
-    expect(formatAddress(address())).toBe('Cra 7 # 45-10, Bogota, Cundinamarca, 110111, CO')
+  it('reads as one line, without repeating the country on every address', () => {
+    expect(formatAddress(address())).toBe('Cra 7 # 45-10, Bogota, Cundinamarca, 110111')
   })
 
   it('leaves out the parts the customer did not fill', () => {
-    expect(formatAddress(address({ line2: '  ', postalCode: '' }))).toBe('Cra 7 # 45-10, Bogota, Cundinamarca, CO')
+    expect(formatAddress(address({ line2: '  ', postalCode: '' }))).toBe('Cra 7 # 45-10, Bogota, Cundinamarca')
   })
 
   it('includes the second line when there is one', () => {

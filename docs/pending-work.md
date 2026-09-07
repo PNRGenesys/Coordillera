@@ -25,7 +25,11 @@ Funciona sobre el catalogo, el inventario y los pedidos, pero le falta:
 - Reembolsar un pedido ya cobrado no devuelve unidades al inventario, porque su reserva ya se consumio.
 - No permite editar las traducciones: al cambiar un nombre o una descripcion solo se modifica la copia base, y la version en espanol sigue viniendo del seed.
 
-## 3. Idiomas
+## 3. Ampliar a otro pais
+
+La tienda asume Colombia (ver `docs/architecture.md`). Para vender fuera habria que volver a mostrar el campo de pais, servir la lista de regiones desde la API en vez de tenerla en el frontend, revisar la moneda y la zona horaria, y decidir el formato de codigo postal.
+
+## 4. Idiomas
 
 La tienda funciona en español e ingles, pero:
 
@@ -33,18 +37,18 @@ La tienda funciona en español e ingles, pero:
 - Los nombres de coleccion `Wildspirit` y de producto en ingles se dejaron sin traducir a proposito por ser nombres de marca; conviene confirmarlo con el negocio.
 - No hay forma de cargar traducciones fuera del seed (ver el punto anterior sobre el panel).
 
-## 4. Facetas del catalogo
+## 5. Facetas del catalogo
 
 Los desplegables de color y talla en `/shop` se arman con los productos de la pagina visible, asi que al filtrar por un color el desplegable deja de ofrecer los demas (hay que volver a "Todas" para cambiar). Solucion adecuada: un endpoint de facetas que devuelva colores y tallas del catalogo completo segun coleccion y categoria.
 
-## 5. Imagenes y assets
+## 6. Imagenes y assets
 
 - Las imagenes del catalogo son fichas de diseno generadas con IA, cargadas solo para probar la tienda. Hay que reemplazarlas por fotografia real de producto, en formato vertical, porque la tarjeta las recorta al centro con `object-fit: cover`.
 - No se sirven varios tamanos ni formatos modernos de imagen.
 - `collections.heroImageUrl` sigue guardandose y devolviendose, pero ya no se muestra en ninguna parte desde que el hero del inicio pasa a ser el banner de marca. Su lugar natural seria la cabecera de `/shop/:collection`.
 - Falta renombrar la carpeta local del proyecto y el repositorio en GitHub, que siguen como `Coordillera`. De la carpeta sale ademas el nombre del contenedor (`coordillera-database-1`).
 
-## 6. Despliegue
+## 7. Despliegue
 
 Hoy no existe: todo corre en local (`npm run dev`) contra el PostgreSQL de `docker-compose.yml`. Falta decidir donde vive la tienda y montar el despliegue continuo.
 
@@ -58,10 +62,10 @@ Opciones razonables para el tamano actual, de menos a mas operacion:
 
 El frontend es estatico (`npm run build` deja `apps/web/dist`), asi que puede ir en cualquier CDN. Antes de publicar hacen falta los pendientes de seguridad de `docs/architecture.md`: gestion de secretos, limitacion de tasa, observabilidad y copias de seguridad.
 
-## 7. Vulnerabilidades de dependencias
+## 8. Vulnerabilidades de dependencias
 
 `npm audit` reporta 4 moderadas, todas heredadas de `esbuild` via `drizzle-kit`. `npm audit fix --force` implica un downgrade incompatible de `drizzle-kit`; no se aplico.
 
-## 8. Producto todavia no empezado
+## 9. Producto todavia no empezado
 
 Pasarela de pago, envios y costos, correos transaccionales y contenido editorial real (textos y colecciones definitivas).

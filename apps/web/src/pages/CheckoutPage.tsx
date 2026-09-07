@@ -1,6 +1,6 @@
 import { styled } from '@linaria/react'
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Field, FieldRow, Input, PrimaryButton, Section, SectionHeader, SectionTitle } from '../components/primitives'
+import { Field, FieldRow, Input, PrimaryButton, Section, SectionHeader, SectionTitle, Select } from '../components/primitives'
 import { StateMessage } from '../components/StateMessage'
 import { selectSessionId } from '../store/cart-slice'
 import { useCheckoutMutation, type CheckoutInput, type ShippingAddress } from '../store/catalog-api'
@@ -8,6 +8,7 @@ import { useAccount } from '../lib/use-account'
 import { useAppSelector } from '../store/hooks'
 import { formatPrice } from '../lib/format-price'
 import { orderStatusKeys } from '../lib/order-status'
+import { COLOMBIA_REGIONS, PHONE_EXAMPLE } from '../lib/store-country'
 import { useTranslation } from '../lib/use-translation'
 
 const Form = styled.form`
@@ -30,7 +31,7 @@ const emptyForm: CheckoutInput = {
   firstName: '',
   lastName: '',
   phone: '',
-  shippingAddress: { line1: '', line2: '', city: '', region: '', postalCode: '', country: 'CO' },
+  shippingAddress: { line1: '', line2: '', city: '', region: '', postalCode: '' },
 }
 
 export function CheckoutPage() {
@@ -57,7 +58,6 @@ export function CheckoutPage() {
           city: current.shippingAddress.city || account.shippingAddress.city,
           region: current.shippingAddress.region || account.shippingAddress.region,
           postalCode: current.shippingAddress.postalCode || account.shippingAddress.postalCode,
-          country: current.shippingAddress.country || account.shippingAddress.country,
         }
         : current.shippingAddress,
     }))
@@ -71,7 +71,7 @@ export function CheckoutPage() {
   }
 
   function updateAddressField(field: keyof ShippingAddress) {
-    return (event: ChangeEvent<HTMLInputElement>) => {
+    return (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const { value } = event.target
       setForm((current) => ({ ...current, shippingAddress: { ...current.shippingAddress, [field]: value } }))
     }
@@ -121,7 +121,7 @@ export function CheckoutPage() {
         </FieldRow>
         <Field>
           {t('checkout.phone')}
-          <Input required value={form.phone} onChange={updateField('phone')} />
+          <Input required inputMode="tel" placeholder={PHONE_EXAMPLE} value={form.phone} onChange={updateField('phone')} />
         </Field>
         <Field>
           {t('checkout.line1')}
@@ -138,19 +138,16 @@ export function CheckoutPage() {
           </Field>
           <Field>
             {t('checkout.region')}
-            <Input required value={form.shippingAddress.region} onChange={updateAddressField('region')} />
+            <Select required value={form.shippingAddress.region} onChange={updateAddressField('region')}>
+              <option value="">{t('checkout.regionPlaceholder')}</option>
+              {COLOMBIA_REGIONS.map((region) => <option key={region} value={region}>{region}</option>)}
+            </Select>
           </Field>
         </FieldRow>
-        <FieldRow>
-          <Field>
-            {t('checkout.postalCode')}
-            <Input required value={form.shippingAddress.postalCode} onChange={updateAddressField('postalCode')} />
-          </Field>
-          <Field>
-            {t('checkout.country')}
-            <Input required maxLength={2} value={form.shippingAddress.country} onChange={updateAddressField('country')} />
-          </Field>
-        </FieldRow>
+        <Field>
+          {t('checkout.postalCode')}
+          <Input required value={form.shippingAddress.postalCode} onChange={updateAddressField('postalCode')} />
+        </Field>
         <SubmitButton type="submit" disabled={checkoutState.isLoading}>
           {t('checkout.placeOrder')}
         </SubmitButton>

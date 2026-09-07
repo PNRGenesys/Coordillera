@@ -49,6 +49,15 @@ Un cliente puede comprar como invitado o con cuenta. La cuenta vive en la misma 
 - `/account` muestra los datos de la cuenta y `/account/edit` es la pagina de edicion; el cliente cambia alli nombre, correo, telefono, foto y direccion de envio con `PATCH /api/auth/me`, y al guardar vuelve a la ficha. La direccion guardada prellena el checkout y el correo de la cuenta evita volver a pedirlo para la lista de reposicion.
 - La foto se guarda como data URL en la columna `customers.avatar`, porque el proyecto todavia no tiene almacenamiento de archivos. El navegador la recorta en cuadrado y la reduce a 256 px antes de enviarla (`src/lib/avatar.ts`), y la API limita el texto con `AVATAR_MAX_CHARACTERS`. Al haber almacenamiento externo, esa columna deberia pasar a ser una URL.
 
+## Un solo pais
+
+La tienda vende unicamente en Colombia, y la interfaz lo da por hecho para pedir menos datos:
+
+- El formulario no pregunta el pais. La API lo completa con `STORE_COUNTRY` (`CO` por defecto), asi que la direccion guardada lo sigue teniendo y ampliarse a otro pais es cambiar una variable y volver a mostrar el campo.
+- El departamento se elige de la lista real de los 32 departamentos mas Bogota D.C. (`apps/web/src/lib/store-country.ts`). La validacion de la API sigue aceptando cualquier texto, para no duplicar la lista en los dos lados.
+- La ficha de la cuenta no repite el pais en la direccion, el telefono de ejemplo es un movil colombiano y las fechas de pedidos se muestran en `America/Bogota`.
+- La moneda es COP (`STORE_CURRENCY`) y el formato numerico sale del idioma de la interfaz.
+
 ## Idiomas
 
 La tienda funciona en español (por defecto) e ingles, y la traduccion tiene dos mitades:

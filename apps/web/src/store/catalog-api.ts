@@ -123,7 +123,8 @@ export type ShippingAddress = {
   city: string
   region: string
   postalCode: string
-  country: string
+  /** Filled in by the API while the store ships to a single country, so the forms never send it. */
+  country?: string
 }
 
 export type CheckoutInput = {
