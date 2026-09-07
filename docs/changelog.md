@@ -2,6 +2,12 @@
 
 Este archivo registra los cambios incluidos en cada commit solicitado. Las entradas se agregan antes de crear el commit.
 
+## Sin commit - Finales de linea consistentes
+
+- `.gitattributes` pasa de `* text=auto` a `* text=auto eol=lf`: el repositorio guarda LF y ahora tambien se descarga LF en Windows, en vez de convertirse a CRLF. Eso es lo que provocaba el aviso del editor.
+- Se marcaron como binarias las imagenes (`png`, `jpg`, `jpeg`, `ico`, `webp`) para que la conversion nunca las toque.
+- Se normalizaron a LF cuatro archivos que habian quedado con finales mezclados o CRLF: `apps/api/.env.example`, `apps/api/src/routes/cart.ts`, `apps/web/src/lib/format-price.test.ts` y `docs/api.md`.
+
 ## Sin commit - Carpeta de banners, nota de despliegue y repaso de la documentacion
 
 - El banner de marca se movio a `apps/web/src/assets/Banners/`, su propia carpeta para las proximas piezas.
