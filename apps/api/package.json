@@ -16,6 +16,7 @@
     "inventory:release-expired": "tsx src/jobs/release-expired-reservations.ts"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "latest",
     "dotenv": "latest",
     "drizzle-orm": "latest",
@@ -24,10 +25,10 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@types/node": "latest",
     "drizzle-kit": "latest",
     "tsx": "latest",
     "typescript": "latest",
-    "vitest": "^4.1.10",
-    "@types/node": "latest"
+    "vitest": "^4.1.10"
   }
 }

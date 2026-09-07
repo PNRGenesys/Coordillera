@@ -37,9 +37,14 @@ export const inventoryItems = pgTable('inventory_items', {
 export const inventoryMovements = pgTable('inventory_movements', {
   id: uuid('id').defaultRandom().primaryKey(), inventoryItemId: uuid('inventory_item_id').references(() => inventoryItems.id).notNull(), type: inventoryMovementType('type').notNull(), quantity: integer('quantity').notNull(), reference: varchar('reference', { length: 120 }), note: text('note'), createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
+/** `passwordHash` stays empty for the customers created by a guest checkout: only registered accounts can sign in. */
 export const customers = pgTable('customers', {
-  id: uuid('id').defaultRandom().primaryKey(), email: varchar('email', { length: 320 }).notNull().unique(), firstName: varchar('first_name', { length: 100 }), lastName: varchar('last_name', { length: 100 }), phone: varchar('phone', { length: 40 }), ...timestamps,
+  id: uuid('id').defaultRandom().primaryKey(), email: varchar('email', { length: 320 }).notNull().unique(), firstName: varchar('first_name', { length: 100 }), lastName: varchar('last_name', { length: 100 }), phone: varchar('phone', { length: 40 }), passwordHash: varchar('password_hash', { length: 200 }), ...timestamps,
 })
+/** Only the hash of the session token is stored, so a database dump cannot be used to impersonate a customer. */
+export const customerSessions = pgTable('customer_sessions', {
+  id: uuid('id').defaultRandom().primaryKey(), customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'cascade' }).notNull(), tokenHash: varchar('token_hash', { length: 64 }).notNull().unique(), expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(), createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [index('customer_sessions_customer_idx').on(table.customerId)])
 export const carts = pgTable('carts', {
   id: uuid('id').defaultRandom().primaryKey(), sessionId: uuid('session_id').notNull().unique(), customerId: uuid('customer_id').references(() => customers.id), currency: varchar('currency', { length: 3 }).default('COP').notNull(), ...timestamps,
 })

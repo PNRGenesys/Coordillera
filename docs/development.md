@@ -21,7 +21,7 @@ npm.cmd run dev
 - API: `http://localhost:3000`
 - Base de datos: `localhost:5432`
 
-La configuracion local de API esta en `apps/api/.env`. Nunca se deben versionar claves reales de produccion.
+La configuracion local de API esta en `apps/api/.env`. Nunca se deben versionar claves reales de produccion. Ademas de `DATABASE_URL` y `ADMIN_API_KEY`, acepta `SESSION_TTL_DAYS` (duracion de la cookie de sesion) y `PASSWORD_MIN_LENGTH`; ambas tienen valor por defecto.
 
 ## Comandos frecuentes
 
@@ -47,7 +47,7 @@ Las pruebas requieren Node 22.12 o posterior (verificadas en Node 24.19). Con No
 
 ### Pruebas de la API
 
-Son pruebas de integracion contra la base de datos local: crean su propio producto de prueba, ejercitan el flujo y limpian sus datos al terminar. Necesitan `apps/api/.env` con `DATABASE_URL` y PostgreSQL levantado (`db:up` + `db:migrate`). Corren en serie (`fileParallelism: false`) porque comparten una sola base.
+Son pruebas de integracion contra la base de datos local: crean sus propios producto y clientes de prueba, ejercitan el flujo y limpian sus datos al terminar. Necesitan `apps/api/.env` con `DATABASE_URL` y PostgreSQL levantado (`db:up` + `db:migrate`). Corren en serie (`fileParallelism: false`) porque comparten una sola base.
 
 ## Cambio de base de datos
 
@@ -63,4 +63,6 @@ Los MCP de Playwright y Chrome DevTools estan configurados globalmente para Code
 
 ## Datos de demostracion
 
-`npm.cmd run db:seed --workspace=@coordillera/api` carga datos idempotentes: productos activos, colecciones, categorias, guias de talla, inventario y movimientos. Uno de los productos queda deliberadamente con stock 0 (para probar el estado agotado) y otro en `preorder`. Sin ejecutar el seed, el catalogo muestra su estado vacio.
+`npm.cmd run db:seed --workspace=@coordillera/api` carga datos idempotentes: productos activos, colecciones, categorias, guias de talla, inventario y movimientos. Uno de los productos queda deliberadamente con stock 0 (para probar el estado agotado) y otro en `preorder`. Los productos que ya no estan en el seed quedan archivados. Sin ejecutar el seed, el catalogo muestra su estado vacio.
+
+Las imagenes del catalogo son fichas de diseno generadas con IA y sirven unicamente para probar la tienda (ver `docs/pending-work.md`).

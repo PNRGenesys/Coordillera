@@ -2,6 +2,24 @@
 
 Este archivo registra los cambios incluidos en cada commit solicitado. Las entradas se agregan antes de crear el commit.
 
+## Sin commit - Inicio de sesion de clientes
+
+- Se agregaron `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout` y `GET /api/auth/me`.
+- Las contrasenas se guardan con `scrypt` de `node:crypto` (sin dependencias nuevas de cifrado) y la sesion viaja en una cookie `httpOnly`; la base solo guarda el hash del token (tabla `customer_sessions`).
+- Registrarse con el correo de una compra de invitado reclama ese cliente en vez de duplicarlo. Correo desconocido y contrasena incorrecta comparten el mismo error, para no revelar que cuentas existen.
+- Frontend: pagina `/account` con inicio de sesion y registro, enlace en la cabecera con el nombre del cliente y checkout prellenado con los datos de la cuenta (solo en los campos vacios).
+- Pruebas nuevas: 10 de la API (registro, correo repetido, hash almacenado, credenciales, sesion y cierre de sesion) y 5 del frontend (mensajes de error y nombre visible).
+- Se agrego `@fastify/cookie` y las variables `SESSION_TTL_DAYS` y `PASSWORD_MIN_LENGTH`.
+
+## Sin commit - Catalogo de prueba con las fichas de diseno Kemono
+
+- Se cargaron las 12 fichas de diseno generadas con IA como imagenes de prueba del sitio: 11 productos en `apps/web/public/products/` y el hero de coleccion en `apps/web/public/collections/`. Se convirtieron de PNG a JPEG (25 MB a 3,4 MB) y se eliminaron los SVG de `public/placeholders/`.
+- El seed pasa a las colecciones `wildspirit` y `fauna-series` con 11 productos (uno agotado y uno en preventa), la categoria `pants` y la guia de tallas de tops con las medidas reales de la ficha.
+- El seed archiva los productos que ya no estan en el conjunto de datos, en vez de dejarlos activos, y actualiza guias y colecciones existentes al volver a ejecutarse.
+- Se corrigio el generador de SKU del seed: recortaba el slug a cuatro letras, de modo que `furry-cap` y `furry-casual-tee` chocaban y cinco productos quedaban sin variantes ni stock. Ahora usa las iniciales del slug y el seed falla si detecta un SKU repetido.
+- El orden de variantes agrupa por color y, sin guia de tallas, usa el orden estandar (XS a XXXL) en vez del alfabetico.
+- La cuadricula de categorias del inicio se ajusta al numero de categorias en lugar de fijar tres columnas.
+
 ## Sin commit - Correccion de Linaria (pagina en blanco) y revision visual con Playwright
 
 - Se reemplazo `@linaria/vite@5` por `@wyw-in-js/vite`: el plugin antiguo no es compatible con Linaria 8, no transformaba nada y el tag `css` lanzaba en tiempo de ejecucion, dejando la pagina en blanco y el build sin CSS. El build ahora emite la hoja de estilos.

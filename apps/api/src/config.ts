@@ -1,4 +1,5 @@
 const MINUTE_IN_MS = 60 * 1000
+const DAY_IN_MS = 24 * 60 * MINUTE_IN_MS
 
 function readNumber(name: string, fallback: number): number {
   const raw = process.env[name]
@@ -14,4 +15,7 @@ export const config = {
   catalogMaxPageSize: readNumber('CATALOG_MAX_PAGE_SIZE', 60),
   cartMaxQuantityPerItem: readNumber('CART_MAX_QUANTITY_PER_ITEM', 20),
   lowStockThreshold: readNumber('LOW_STOCK_THRESHOLD', 5),
+  sessionTtlMs: readNumber('SESSION_TTL_DAYS', 30) * DAY_IN_MS,
+  passwordMinLength: readNumber('PASSWORD_MIN_LENGTH', 8),
+  isProduction: process.env.NODE_ENV === 'production',
 }

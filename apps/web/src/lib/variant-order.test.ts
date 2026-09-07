@@ -19,9 +19,9 @@ describe('sortVariantsBySizeGuide', () => {
     expect(idsOf(sorted)).toEqual(['Bone-S', 'Bone-M', 'Bone-L', 'Bone-XL'])
   })
 
-  it('keeps the original order of variants sharing a size', () => {
-    const sorted = sortVariantsBySizeGuide([variant('M', 'Bone'), variant('M', 'Moss'), variant('S', 'Bone')], columns, rows)
-    expect(idsOf(sorted)).toEqual(['Bone-S', 'Bone-M', 'Moss-M'])
+  it('groups variants by colour keeping the order each colour first appears', () => {
+    const sorted = sortVariantsBySizeGuide([variant('M', 'Bone'), variant('M', 'Moss'), variant('S', 'Bone'), variant('S', 'Moss')], columns, rows)
+    expect(idsOf(sorted)).toEqual(['Bone-S', 'Bone-M', 'Moss-S', 'Moss-M'])
   })
 
   it('pushes sizes missing from the guide to the end', () => {
@@ -29,8 +29,8 @@ describe('sortVariantsBySizeGuide', () => {
     expect(idsOf(sorted)).toEqual(['Bone-M', 'Bone-One size'])
   })
 
-  it('returns the variants untouched when there is no size guide', () => {
-    const variants = [variant('L'), variant('S')]
-    expect(sortVariantsBySizeGuide(variants, null, null)).toBe(variants)
+  it('falls back to the standard size order when there is no size guide', () => {
+    const sorted = sortVariantsBySizeGuide([variant('XL'), variant('M'), variant('L'), variant('S')], null, null)
+    expect(idsOf(sorted)).toEqual(['Bone-S', 'Bone-M', 'Bone-L', 'Bone-XL'])
   })
 })

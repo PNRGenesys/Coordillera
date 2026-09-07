@@ -1,9 +1,19 @@
 import type { ProductVariant } from '../store/catalog-api'
 
+/** Fallback order for categories without a size guide, such as pants or accessories. */
+const STANDARD_SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'One size']
+
+type SizeOrColor = ProductVariant['size']
+
+function rankIn(order: readonly SizeOrColor[], value: SizeOrColor): number {
+  const index = order.indexOf(value)
+  return index === -1 ? order.length : index
+}
+
 /**
- * The API returns variants sorted alphabetically, which reads as L, M, S, XL.
- * The size guide already lists the sizes in their real order, so it is used as the reference.
- * The first column of the guide is the one holding the size name.
+ * The API returns variants grouped by size, which reads as L, M, S, XL and mixes colours.
+ * They are regrouped by colour, keeping the order in which each colour appears, and inside every
+ * colour the sizes follow the size guide. The first column of the guide holds the size name.
  */
 export function sortVariantsBySizeGuide(
   variants: ProductVariant[],
@@ -11,13 +21,11 @@ export function sortVariantsBySizeGuide(
   sizeGuideRows: Record<string, string>[] | null,
 ): ProductVariant[] {
   const sizeColumn = sizeGuideColumns?.[0]
-  if (!sizeColumn || !sizeGuideRows?.length) return variants
+  const sizeOrder = sizeColumn && sizeGuideRows?.length ? sizeGuideRows.map((row) => row[sizeColumn]) : STANDARD_SIZE_ORDER
+  const colorOrder = [...new Set(variants.map((variant) => variant.color))]
 
-  const guideOrder = sizeGuideRows.map((row) => row[sizeColumn])
-  const rankOf = (variant: ProductVariant): number => {
-    const index = variant.size ? guideOrder.indexOf(variant.size) : -1
-    return index === -1 ? guideOrder.length : index
-  }
-
-  return [...variants].sort((left, right) => rankOf(left) - rankOf(right))
+  return [...variants].sort((left, right) => {
+    const byColor = rankIn(colorOrder, left.color) - rankIn(colorOrder, right.color)
+    return byColor === 0 ? rankIn(sizeOrder, left.size) - rankIn(sizeOrder, right.size) : byColor
+  })
 }

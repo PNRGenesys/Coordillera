@@ -1,103 +1,35 @@
-# Estado y trabajo pendiente
+# Trabajo pendiente
 
-Corte: 2026-08-13. Trabajo en `main`, sin commit.
+Corte: 2026-09-06. Trabajo en `main`, sin commit. Solo se listan tareas abiertas; lo terminado vive en `docs/changelog.md`.
 
-## Estado actual
+## 1. Panel administrativo
 
-Backend y frontend completos y verificados contra la base de datos local. Todo lo que aparecia como pendiente de verificacion en el corte anterior ya se ejecuto.
+Las rutas `/api/admin/*` existen pero no tienen interfaz y siguen protegidas solo por el encabezado `x-admin-key`. Falta la interfaz y una autenticacion real con roles.
 
-### Verificacion end to end (hecha, con Docker y PostgreSQL en ejecucion)
+## 2. Cuentas de cliente
 
-| Flujo | Resultado |
-|---|---|
-| `db:migrate` + `db:seed` | OK, 7 productos activos. |
-| `GET /api/collections`, `/api/categories` | OK. |
-| `GET /api/products` con paginacion y filtros (`collection`, `size`, `availability=in_stock`) | OK. |
-| `GET /api/products/:slug` | OK, incluye imagenes, variantes con disponibilidad y guia de tallas. |
-| Carrito: agregar, actualizar, quitar | OK. |
-| Agregar variante agotada | 409 `out_of_stock`. |
-| Cantidad por encima del maximo por linea | 400 `invalid_request`. |
-| Cantidad por encima del stock | 409 `out_of_stock`. |
-| `POST /api/checkout` | 201, pedido `ORD-001000` con reserva de 20 minutos y carrito vaciado. |
-| `POST /api/restock-requests` | 202. |
-| `GET /api/admin/inventory` | OK con clave; 401 sin ella. |
-| Slug inexistente | 404 `product_not_found`. |
-| Proxy de Vite `/api` | OK. |
+El inicio de sesion ya funciona, pero queda por hacer:
 
-### Revision visual (hecha, con Playwright)
+- Verificacion de correo y recuperacion de contrasena. Hoy cualquiera que conozca el correo de una compra de invitado puede reclamar esa cuenta.
+- Limitacion de intentos en `POST /api/auth/login`.
+- Historial de pedidos: no existe ninguna ruta que exija sesion, asi que el cliente no puede ver sus compras.
+- El checkout de invitado sigue sobrescribiendo nombre y telefono de un cliente registrado si usa su correo.
+- Las sesiones vencidas se ignoran al leerlas, pero nadie las borra; conviene sumarlas al job `inventory:release-expired`.
 
-Se recorrieron inicio, catalogo, catalogo por coleccion, detalle, producto agotado, carrito y checkout en 1440x1000 y en 390x844, sin errores de consola. Los estilos de Linaria se emiten correctamente tras cambiar el plugin de Vite.
+## 3. Facetas del catalogo
 
-### Validaciones
+Los desplegables de color y talla en `/shop` se arman con los productos de la pagina visible, asi que al filtrar por un color el desplegable deja de ofrecer los demas (hay que volver a "Todas" para cambiar). Solucion adecuada: un endpoint de facetas que devuelva colores y tallas del catalogo completo segun coleccion y categoria.
 
-- `npm.cmd run typecheck` OK.
-- `npm.cmd run test` OK: 6 pruebas de API + 14 del frontend.
-- `npm.cmd run build` OK.
-- Entorno verificado: Windows 11, Node 24.19.0, PostgreSQL en Docker.
+## 4. Imagenes y assets
 
-## Pendiente
+- Las imagenes del catalogo son fichas de diseno generadas con IA, cargadas solo para probar la tienda. Hay que reemplazarlas por fotografia real de producto, en formato vertical, porque la tarjeta las recorta al centro con `object-fit: cover`.
+- `apps/web/src/assets/hero-collection.png` pesa ~2 MB, entra en el bundle y solo se usa como respaldo del hero cuando no hay coleccion destacada; conviene comprimirla o eliminarla.
+- No se sirven varios tamanos ni formatos modernos de imagen.
 
-### 1. Panel administrativo
+## 5. Vulnerabilidades de dependencias
 
-Las rutas `/api/admin/*` existen pero no tienen interfaz. Siguen protegidas solo por el encabezado `x-admin-key` (temporal, ver `docs/architecture.md`).
+`npm audit` reporta 4 moderadas, todas heredadas de `esbuild` via `drizzle-kit`. `npm audit fix --force` implica un downgrade incompatible de `drizzle-kit`; no se aplico.
 
-### 2. Facetas del catalogo
+## 6. Producto todavia no empezado
 
-Los desplegables de color y talla en `/shop` se arman con los productos de la pagina visible, asi que al filtrar por un color el desplegable deja de ofrecer los demas (hay que volver a "Todos" para cambiar). Solucion adecuada: un endpoint de facetas que devuelva colores y tallas del catalogo completo segun coleccion y categoria.
-
-### 3. Optimizacion de assets
-
-`apps/web/src/assets/hero-collection.png` pesa ~2 MB y se sirve tal cual en el build. Sustituible por fotografia de producto real; conviene comprimir y redimensionar al reemplazarla.
-
-### 4. Vulnerabilidades de dependencias
-
-`npm audit` reporta 4 moderadas, todas heredadas de `esbuild` via `drizzle-kit` (las 3 criticas anteriores desaparecieron al quitar `@linaria/vite`). `npm audit fix --force` implica un downgrade incompatible de `drizzle-kit`; no se aplico.
-
-### 5. Trabajo de producto todavia no empezado
-
-Pasarela de pago, envios y costos, cuentas de cliente, historial de pedidos, correos transaccionales y contenido editorial real (fotografia, textos, colecciones definitivas).
-
-## Contrato de API vigente
-
-```
-GET  /api/collections            -> [{ id, name, slug, tagline, heroImageUrl, releasedAt, featured }]
-GET  /api/categories              -> [{ id, name, slug, position }]
-GET  /api/products?collection=&category=&color=&size=&availability=all|in_stock&page=&pageSize=
-     -> { page, pageSize, total, items: [{ id, slug, name, release, availableAt, categorySlug,
-           collectionSlug, collectionName, minPriceCents, maxPriceCents, colors[], sizes[],
-           availableUnits, imageUrl }] }
-GET  /api/products/:slug
-     -> { id, name, slug, description, composition, release, availableAt, categoryName, categorySlug,
-          collectionName, collectionSlug, sizeGuideName, sizeGuideUnit, sizeGuideColumns[],
-          sizeGuideRows[], images: [{ url, alt, position }],
-          variants: [{ id, sku, name, color, size, priceCents, compareAtPriceCents, availableUnits }] }
-GET    /api/cart/:sessionId      -> CartView
-POST   /api/cart/items           { sessionId, variantId, quantity }        -> 201 CartView
-PATCH  /api/cart/items           { sessionId, variantId, quantity }        -> CartView  (quantity 0 = eliminar)
-DELETE /api/cart/items?sessionId=&variantId=                               -> CartView
-POST   /api/checkout             { sessionId, email, firstName, lastName, phone, shippingAddress }
-     -> 201 { number, status, totalCents, currency, reservationExpiresInMinutes }
-POST   /api/restock-requests     { variantId, email }                      -> 202
-GET    /api/admin/inventory                        (header x-admin-key)
-POST   /api/admin/inventory/adjustments            (header x-admin-key)
-POST   /api/admin/products                         (header x-admin-key)
-```
-
-`CartView = { sessionId, currency, items: [{ variantId, sku, productName, productSlug, variantName, color, size, unitPriceCents, quantity, availableUnits, imageUrl }], itemCount, subtotalCents }`
-
-Errores: `{ code, message, details }`. Codigos: `cart_not_found`, `cart_empty`, `cart_item_not_found`, `product_not_found`, `variant_not_found`, `out_of_stock`, `invalid_adjustment`, `invalid_request`, `internal_error`.
-
-## Comandos
-
-```powershell
-npm.cmd install
-Copy-Item apps/api/.env.example apps/api/.env
-npm.cmd run db:up
-npm.cmd run db:migrate --workspace=@coordillera/api
-npm.cmd run db:seed    --workspace=@coordillera/api
-npm.cmd run dev
-```
-
-Web `http://localhost:5173`, API `http://localhost:3000/api/health`.
-
-`apps/api/.env` es obligatorio: sin `DATABASE_URL` fallan `db:migrate`, `db:seed`, el servidor y las pruebas de la API. Para el panel administrativo hace falta `ADMIN_API_KEY` y enviarla en la cabecera `x-admin-key`.
+Pasarela de pago, envios y costos, correos transaccionales y contenido editorial real (textos y colecciones definitivas).

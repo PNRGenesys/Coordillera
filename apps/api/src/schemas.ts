@@ -36,6 +36,15 @@ export const checkoutSchema = sessionSchema.extend({
   }),
 })
 
+export const registerSchema = z.object({
+  email: z.string().email().max(320),
+  password: z.string().min(config.passwordMinLength).max(200),
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().min(1).max(100),
+  phone: z.string().min(7).max(40).optional(),
+})
+export const loginSchema = z.object({ email: z.string().email().max(320), password: z.string().min(1).max(200) })
+
 export const restockRequestSchema = z.object({ variantId: z.string().uuid(), email: z.string().email() })
 
 export const inventoryAdjustmentSchema = z.object({

@@ -62,7 +62,8 @@ const Categories = styled.div`
   background: var(--color-border);
   display: grid;
   gap: 1px;
-  grid-template-columns: repeat(3, 1fr);
+  /* The number of categories changes with the catalog, so the row fills itself instead of leaving gaps. */
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 
   @media (max-width: 700px) {
     grid-template-columns: 1fr;

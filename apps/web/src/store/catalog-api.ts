@@ -130,6 +130,27 @@ export type CheckoutInput = {
 
 export type OrderStatus = 'pending_payment' | 'paid' | 'processing' | 'fulfilled' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
 
+export type AccountProfile = {
+  id: string
+  email: string
+  firstName: string | null
+  lastName: string | null
+  phone: string | null
+}
+
+export type RegisterInput = {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  phone?: string
+}
+
+export type LoginInput = { email: string; password: string }
+
+/** `account` is absent while browsing as a guest. */
+export type AccountSession = { account?: AccountProfile }
+
 export type CheckoutConfirmation = {
   number: string
   status: OrderStatus
@@ -145,8 +166,9 @@ function withoutUndefinedFilters(filters: CatalogFilters): Partial<CatalogFilter
 
 export const catalogApi = createApi({
   reducerPath: 'catalogApi',
-  baseQuery: fetchBaseQuery({ baseUrl: '/api/' }),
-  tagTypes: ['Catalog', 'Cart'],
+  // `credentials` sends the session cookie when the web app runs on a different origin than the API.
+  baseQuery: fetchBaseQuery({ baseUrl: '/api/', credentials: 'include' }),
+  tagTypes: ['Catalog', 'Cart', 'Account'],
   endpoints: (build) => ({
     getCollections: build.query<Collection[], void>({
       query: () => 'collections',
@@ -187,6 +209,22 @@ export const catalogApi = createApi({
     requestRestock: build.mutation<{ status: string }, { variantId: string; email: string }>({
       query: (body) => ({ url: 'restock-requests', method: 'POST', body }),
     }),
+    getAccount: build.query<AccountSession, void>({
+      query: () => 'auth/me',
+      providesTags: ['Account'],
+    }),
+    register: build.mutation<AccountProfile, RegisterInput>({
+      query: (body) => ({ url: 'auth/register', method: 'POST', body }),
+      invalidatesTags: ['Account'],
+    }),
+    login: build.mutation<AccountProfile, LoginInput>({
+      query: (body) => ({ url: 'auth/login', method: 'POST', body }),
+      invalidatesTags: ['Account'],
+    }),
+    logout: build.mutation<void, void>({
+      query: () => ({ url: 'auth/logout', method: 'POST' }),
+      invalidatesTags: ['Account'],
+    }),
   }),
 })
 
@@ -201,4 +239,8 @@ export const {
   useRemoveCartItemMutation,
   useCheckoutMutation,
   useRequestRestockMutation,
+  useGetAccountQuery,
+  useRegisterMutation,
+  useLoginMutation,
+  useLogoutMutation,
 } = catalogApi

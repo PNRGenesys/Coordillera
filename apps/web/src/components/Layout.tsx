@@ -1,6 +1,8 @@
 import { css } from '@linaria/core'
 import { styled } from '@linaria/react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
+import { accountDisplayName } from '../lib/account'
+import { useAccount } from '../lib/use-account'
 import { useTranslation } from '../lib/use-translation'
 import { useGetCartQuery } from '../store/catalog-api'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
@@ -62,7 +64,7 @@ const HeaderActions = styled.div`
   display: flex;
   gap: 1rem;
 `
-const CartLink = styled(Link)`
+const HeaderLink = styled(Link)`
   color: inherit;
   font-size: 0.78rem;
   font-weight: 700;
@@ -116,6 +118,7 @@ export function Layout() {
   const sessionId = useAppSelector(selectSessionId)
   const language = useAppSelector(selectLanguage)
   const { data: cart } = useGetCartQuery(sessionId)
+  const { account } = useAccount()
   const { t } = useTranslation()
 
   return (
@@ -129,9 +132,10 @@ export function Layout() {
           </NavLink>
         </Nav>
         <HeaderActions>
-          <CartLink to="/cart" aria-label="Cart">
+          <HeaderLink to="/account">{account ? accountDisplayName(account) : t('account.navGuest')}</HeaderLink>
+          <HeaderLink to="/cart" aria-label="Cart">
             {t('nav.bag', { count: cart?.itemCount ?? 0 })}
-          </CartLink>
+          </HeaderLink>
           <LanguageToggle type="button" onClick={() => dispatch(setLanguage(language === 'es' ? 'en' : 'es'))}>
             {t('language.toggleLabel')}
           </LanguageToggle>

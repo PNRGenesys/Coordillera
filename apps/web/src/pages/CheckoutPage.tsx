@@ -1,9 +1,10 @@
 import { styled } from '@linaria/react'
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Section, SectionHeader, SectionTitle } from '../components/primitives'
 import { StateMessage } from '../components/StateMessage'
 import { selectSessionId } from '../store/cart-slice'
 import { useCheckoutMutation, type CheckoutInput, type OrderStatus, type ShippingAddress } from '../store/catalog-api'
+import { useAccount } from '../lib/use-account'
 import { useAppSelector } from '../store/hooks'
 import { formatPrice } from '../lib/format-price'
 import { useTranslation } from '../lib/use-translation'
@@ -82,7 +83,20 @@ export function CheckoutPage() {
   const { t, numberLocale } = useTranslation()
   const sessionId = useAppSelector(selectSessionId)
   const [checkout, checkoutState] = useCheckoutMutation()
+  const { account } = useAccount()
   const [form, setForm] = useState<CheckoutInput>({ ...emptyForm, sessionId })
+
+  // Only the fields still empty are filled, so the account data never overwrites what the customer typed.
+  useEffect(() => {
+    if (!account) return
+    setForm((current) => ({
+      ...current,
+      email: current.email || account.email,
+      firstName: current.firstName || (account.firstName ?? ''),
+      lastName: current.lastName || (account.lastName ?? ''),
+      phone: current.phone || (account.phone ?? ''),
+    }))
+  }, [account])
 
   function updateField(field: keyof Omit<CheckoutInput, 'shippingAddress' | 'sessionId'>) {
     return (event: ChangeEvent<HTMLInputElement>) => {
