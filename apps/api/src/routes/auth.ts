@@ -7,7 +7,7 @@ import { customers } from '../db/schema.js'
 import { DomainError } from '../errors.js'
 import { loginSchema, registerSchema } from '../schemas.js'
 
-const profileColumns = { id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName, phone: customers.phone }
+const profileColumns = { id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName, phone: customers.phone, role: customers.role }
 
 export function registerAuthRoutes(app: FastifyInstance): void {
   app.post('/api/auth/register', async (request, reply) => {
@@ -52,5 +52,5 @@ export function registerAuthRoutes(app: FastifyInstance): void {
 }
 
 function toProfile(account: AccountProfile): AccountProfile {
-  return { id: account.id, email: account.email, firstName: account.firstName, lastName: account.lastName, phone: account.phone }
+  return { id: account.id, email: account.email, firstName: account.firstName, lastName: account.lastName, phone: account.phone, role: account.role }
 }

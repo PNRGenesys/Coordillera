@@ -2,6 +2,16 @@
 
 Este archivo registra los cambios incluidos en cada commit solicitado. Las entradas se agregan antes de crear el commit.
 
+## Sin commit - Rol de administrador y panel de gestion
+
+- `customers.role` distingue `customer` de `admin`. Las rutas `/api/admin/*` pasaron del encabezado `x-admin-key` a la sesion del cliente: `401` sin sesion, `403` sin rol. Se elimino `ADMIN_API_KEY`.
+- Script `admin:grant` para otorgar el rol por linea de comandos; no se puede ascender una cuenta desde la interfaz.
+- Rutas nuevas: `GET /api/admin/products`, `PATCH /api/admin/products/:id`, `PATCH /api/admin/variants/:id`, `GET /api/admin/orders` y `PATCH /api/admin/orders/:id`. `GET /api/admin/inventory` se elimino porque el listado de productos ya trae existencias.
+- Los pedidos guardan transportadora y numero de guia. Marcar `paid` convierte las reservas en venta y `cancelled`/`refunded` devuelve las unidades; un pedido cerrado ya no cambia de estado.
+- Panel `/admin` con las fichas de producto plegables (nombre, estado, lanzamiento, precio por variante y ajustes de stock con nota) y la lista de pedidos con cliente, direccion, lineas, estado y envio.
+- Se extrajeron a `components/primitives.ts` los campos de formulario que duplicaban checkout y cuenta, y a `lib/order-status.ts` las etiquetas de estado de pedido.
+- Pruebas nuevas: 12 de la API (control de acceso, catalogo, ajustes de stock y pedidos) y 3 del frontend (conversion de precios).
+
 ## Sin commit - Inicio de sesion de clientes
 
 - Se agregaron `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout` y `GET /api/auth/me`.

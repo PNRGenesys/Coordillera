@@ -13,7 +13,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
-    "inventory:release-expired": "tsx src/jobs/release-expired-reservations.ts"
+    "inventory:release-expired": "tsx src/jobs/release-expired-reservations.ts",
+    "admin:grant": "tsx src/scripts/grant-admin.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

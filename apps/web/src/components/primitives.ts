@@ -35,6 +35,49 @@ export const TextLink = styled(Link)`
   text-underline-offset: 0.35rem;
   text-transform: uppercase;
 `
+export const Field = styled.label`
+  display: flex;
+  flex-direction: column;
+  font-size: 0.72rem;
+  font-weight: 700;
+  gap: 0.35rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+`
+export const FieldRow = styled.div`
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr 1fr;
+`
+export const Input = styled.input`
+  border: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  padding: 0.6rem 0.75rem;
+`
+export const Select = styled.select`
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  padding: 0.6rem 0.75rem;
+`
+export const PrimaryButton = styled.button`
+  background: var(--color-ink);
+  border: 1px solid var(--color-ink);
+  color: var(--color-background);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 1rem 1.5rem;
+  text-transform: uppercase;
+
+  &:disabled {
+    background: transparent;
+    border-color: var(--color-border);
+    color: var(--color-border);
+    cursor: not-allowed;
+  }
+`
 export const ProductGrid = styled.div`
   display: grid;
   gap: 1.5rem;

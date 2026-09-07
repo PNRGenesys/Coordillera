@@ -45,18 +45,25 @@ Un cliente puede comprar como invitado o con cuenta. La cuenta vive en la misma 
 - El token viaja en la cookie `coordillera_session` (`httpOnly`, `sameSite=lax`, `secure` en produccion), no en `localStorage`.
 - El frontend no guarda la sesion en Redux: `GET /api/auth/me` es la unica fuente, envuelta en `src/lib/use-account.ts`.
 
+## Administracion
+
+`customers.role` distingue `customer` de `admin`; no hay tabla de roles aparte porque solo existen esos dos niveles. Las rutas `/api/admin/*` exigen una sesion cuyo cliente sea administrador (`401` sin sesion, `403` con una cuenta normal), la misma cookie que usa la tienda. El rol se otorga fuera de la aplicacion con `npm run admin:grant --workspace=@coordillera/api -- <correo>`, asi que nadie puede promoverse desde la interfaz.
+
+El panel `/admin` permite editar nombre, estado y lanzamiento de cada producto, precio de cada variante, ajustar existencias con nota (queda en `inventory_movements`) y gestionar pedidos: estado, transportadora y numero de guia.
+
+Marcar un pedido como `paid` convierte sus reservas en venta y `cancelled`/`refunded` las devuelve al inventario. Sin eso, el job que libera reservas vencidas devolveria a la venta unidades ya cobradas.
+
 ## Seguridad actual y pendientes
 
-Las rutas `/api/admin/*` requieren el encabezado `x-admin-key`, con valor igual a `ADMIN_API_KEY`. Esta proteccion es temporal para desarrollo.
-
-Antes de produccion se implementaran roles administrativos, verificacion de correo y recuperacion de contrasena, gestion segura de secretos, limitacion de tasa, observabilidad, copias de seguridad y almacenamiento de imagenes externo.
+Antes de produccion se implementaran verificacion de correo y recuperacion de contrasena, gestion segura de secretos, limitacion de tasa, observabilidad, copias de seguridad y almacenamiento de imagenes externo.
 
 ## Frontend
 
 - Linaria es el sistema obligatorio de estilos. No se agregan hojas CSS nuevas; los tokens de color/tipografia viven en variables CSS globales (`src/components/theme.ts`). La extraccion la hace `@wyw-in-js/vite` (el motor de Linaria 8); el plugin antiguo `@linaria/vite` no sirve con esta version.
 - RTK Query (`src/store/catalog-api.ts`) es la unica capa para datos remotos; sus consultas y mutaciones generan hooks tipados y administran la cache (`Catalog` y `Cart` como tags de invalidacion).
 - Redux mantiene solo estado de cliente que no pertenece al servidor: el `sessionId` del carrito (`src/store/cart-slice.ts`) y el idioma de interfaz (`src/store/ui-slice.ts`). El conteo del carrito sale siempre de `getCart`, nunca duplicado en el store.
-- `react-router-dom` define las paginas (`src/pages/`): inicio, catalogo con filtros, detalle de producto, carrito, checkout, cuenta y 404, todas dentro de un `Layout` compartido (`src/components/Layout.tsx`).
+- `react-router-dom` define las paginas (`src/pages/`): inicio, catalogo con filtros, detalle de producto, carrito, checkout, cuenta, panel de administracion y 404, todas dentro de un `Layout` compartido (`src/components/Layout.tsx`).
+- Los campos de formulario (`Field`, `FieldRow`, `Input`, `Select`, `PrimaryButton`) viven en `src/components/primitives.ts` y los comparten checkout, cuenta y panel de administracion.
 - Idioma: la interfaz es en español por defecto, con un selector ES/EN que traduce toda la copia estatica (`src/lib/translations.ts` + `src/lib/use-translation.ts`). La moneda de la tienda es COP y no cambia con el idioma; solo cambia el formato numerico (`es-CO` / `en-US`).
 - Las imagenes de catalogo son fichas de diseno generadas con IA para probar la tienda y se sirven como estaticos desde `apps/web/public/products/<slug>.jpg` y `apps/web/public/collections/<slug>.jpg`. El seed arma la URL a partir del slug, asi que agregar un producto implica dejar su imagen con el mismo nombre. `apps/web/src/assets/` guarda solo el respaldo del hero cuando no hay coleccion destacada.
 

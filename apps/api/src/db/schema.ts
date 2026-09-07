@@ -10,6 +10,7 @@ export const orderStatus = pgEnum('order_status', ['pending_payment', 'paid', 'p
 export const inventoryMovementType = pgEnum('inventory_movement_type', ['restock', 'adjustment', 'reservation', 'release', 'sale', 'return'])
 
 export const releaseStatus = pgEnum('release_status', ['available', 'preorder', 'coming_soon'])
+export const customerRole = pgEnum('customer_role', ['customer', 'admin'])
 
 export const orderNumberSequence = pgSequence('order_number_seq', { startWith: 1000, increment: 1 })
 
@@ -39,7 +40,7 @@ export const inventoryMovements = pgTable('inventory_movements', {
 })
 /** `passwordHash` stays empty for the customers created by a guest checkout: only registered accounts can sign in. */
 export const customers = pgTable('customers', {
-  id: uuid('id').defaultRandom().primaryKey(), email: varchar('email', { length: 320 }).notNull().unique(), firstName: varchar('first_name', { length: 100 }), lastName: varchar('last_name', { length: 100 }), phone: varchar('phone', { length: 40 }), passwordHash: varchar('password_hash', { length: 200 }), ...timestamps,
+  id: uuid('id').defaultRandom().primaryKey(), email: varchar('email', { length: 320 }).notNull().unique(), firstName: varchar('first_name', { length: 100 }), lastName: varchar('last_name', { length: 100 }), phone: varchar('phone', { length: 40 }), passwordHash: varchar('password_hash', { length: 200 }), role: customerRole('role').default('customer').notNull(), ...timestamps,
 })
 /** Only the hash of the session token is stored, so a database dump cannot be used to impersonate a customer. */
 export const customerSessions = pgTable('customer_sessions', {
@@ -52,7 +53,7 @@ export const cartItems = pgTable('cart_items', {
   id: uuid('id').defaultRandom().primaryKey(), cartId: uuid('cart_id').references(() => carts.id, { onDelete: 'cascade' }).notNull(), variantId: uuid('variant_id').references(() => productVariants.id).notNull(), quantity: integer('quantity').notNull(), ...timestamps,
 }, (table) => [uniqueIndex('cart_variant_unique').on(table.cartId, table.variantId)])
 export const orders = pgTable('orders', {
-  id: uuid('id').defaultRandom().primaryKey(), number: varchar('number', { length: 24 }).notNull().unique(), customerId: uuid('customer_id').references(() => customers.id).notNull(), status: orderStatus('status').default('pending_payment').notNull(), currency: varchar('currency', { length: 3 }).default('COP').notNull(), subtotalCents: integer('subtotal_cents').notNull(), shippingCents: integer('shipping_cents').default(0).notNull(), discountCents: integer('discount_cents').default(0).notNull(), taxCents: integer('tax_cents').default(0).notNull(), totalCents: integer('total_cents').notNull(), shippingAddress: jsonb('shipping_address').$type<Record<string, string>>().notNull(), ...timestamps,
+  id: uuid('id').defaultRandom().primaryKey(), number: varchar('number', { length: 24 }).notNull().unique(), customerId: uuid('customer_id').references(() => customers.id).notNull(), status: orderStatus('status').default('pending_payment').notNull(), currency: varchar('currency', { length: 3 }).default('COP').notNull(), subtotalCents: integer('subtotal_cents').notNull(), shippingCents: integer('shipping_cents').default(0).notNull(), discountCents: integer('discount_cents').default(0).notNull(), taxCents: integer('tax_cents').default(0).notNull(), totalCents: integer('total_cents').notNull(), shippingAddress: jsonb('shipping_address').$type<Record<string, string>>().notNull(), carrier: varchar('carrier', { length: 120 }), trackingNumber: varchar('tracking_number', { length: 120 }), ...timestamps,
 })
 export const orderItems = pgTable('order_items', {
   id: uuid('id').defaultRandom().primaryKey(), orderId: uuid('order_id').references(() => orders.id, { onDelete: 'cascade' }).notNull(), variantId: uuid('variant_id').references(() => productVariants.id).notNull(), sku: varchar('sku', { length: 80 }).notNull(), name: varchar('name', { length: 180 }).notNull(), unitPriceCents: integer('unit_price_cents').notNull(), quantity: integer('quantity').notNull(), ...timestamps,

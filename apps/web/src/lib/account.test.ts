@@ -3,7 +3,7 @@ import type { AccountProfile } from '../store/catalog-api'
 import { accountDisplayName, accountErrorKey } from './account'
 
 function profile(overrides: Partial<AccountProfile> = {}): AccountProfile {
-  return { id: 'id', email: 'ana@coordillera.test', firstName: 'Ana', lastName: 'Ruiz', phone: null, ...overrides }
+  return { id: 'id', email: 'ana@coordillera.test', firstName: 'Ana', lastName: 'Ruiz', phone: null, role: 'customer', ...overrides }
 }
 
 describe('accountErrorKey', () => {

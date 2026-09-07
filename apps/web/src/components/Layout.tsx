@@ -132,6 +132,7 @@ export function Layout() {
           </NavLink>
         </Nav>
         <HeaderActions>
+          {account?.role === 'admin' && <HeaderLink to="/admin">{t('admin.nav')}</HeaderLink>}
           <HeaderLink to="/account">{account ? accountDisplayName(account) : t('account.navGuest')}</HeaderLink>
           <HeaderLink to="/cart" aria-label="Cart">
             {t('nav.bag', { count: cart?.itemCount ?? 0 })}

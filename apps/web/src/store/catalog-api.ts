@@ -130,12 +130,15 @@ export type CheckoutInput = {
 
 export type OrderStatus = 'pending_payment' | 'paid' | 'processing' | 'fulfilled' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
 
+export type CustomerRole = 'customer' | 'admin'
+
 export type AccountProfile = {
   id: string
   email: string
   firstName: string | null
   lastName: string | null
   phone: string | null
+  role: CustomerRole
 }
 
 export type RegisterInput = {
@@ -150,6 +153,60 @@ export type LoginInput = { email: string; password: string }
 
 /** `account` is absent while browsing as a guest. */
 export type AccountSession = { account?: AccountProfile }
+
+export type ProductStatus = 'draft' | 'active' | 'archived'
+
+export type AdminVariant = {
+  id: string
+  sku: string
+  name: string
+  color: string | null
+  size: string | null
+  priceCents: number
+  compareAtPriceCents: number | null
+  onHand: number
+  reserved: number
+  availableUnits: number
+  lowStock: boolean
+}
+
+export type AdminProduct = {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  composition: string | null
+  status: ProductStatus
+  release: ProductRelease
+  categoryName: string | null
+  collectionName: string | null
+  imageUrl: string | null
+  variants: AdminVariant[]
+}
+
+export type AdminOrderItem = { sku: string; name: string; quantity: number; unitPriceCents: number }
+
+export type AdminOrder = {
+  id: string
+  number: string
+  status: OrderStatus
+  currency: string
+  totalCents: number
+  shippingAddress: Record<string, string>
+  carrier: string | null
+  trackingNumber: string | null
+  createdAt: string
+  customerEmail: string
+  customerFirstName: string | null
+  customerLastName: string | null
+  customerPhone: string | null
+  items: AdminOrderItem[]
+}
+
+export type ProductUpdate = { name?: string; description?: string; composition?: string; status?: ProductStatus; release?: ProductRelease }
+export type VariantUpdate = { name?: string; color?: string; size?: string; priceCents?: number; compareAtPriceCents?: number }
+export type OrderUpdate = { status?: OrderStatus; carrier?: string; trackingNumber?: string }
+export type InventoryAdjustment = { variantId: string; quantity: number; note: string }
 
 export type CheckoutConfirmation = {
   number: string
@@ -168,7 +225,7 @@ export const catalogApi = createApi({
   reducerPath: 'catalogApi',
   // `credentials` sends the session cookie when the web app runs on a different origin than the API.
   baseQuery: fetchBaseQuery({ baseUrl: '/api/', credentials: 'include' }),
-  tagTypes: ['Catalog', 'Cart', 'Account'],
+  tagTypes: ['Catalog', 'Cart', 'Account', 'Admin'],
   endpoints: (build) => ({
     getCollections: build.query<Collection[], void>({
       query: () => 'collections',
@@ -225,6 +282,30 @@ export const catalogApi = createApi({
       query: () => ({ url: 'auth/logout', method: 'POST' }),
       invalidatesTags: ['Account'],
     }),
+    getAdminProducts: build.query<AdminProduct[], void>({
+      query: () => 'admin/products',
+      providesTags: ['Admin'],
+    }),
+    updateAdminProduct: build.mutation<AdminProduct, { id: string; changes: ProductUpdate }>({
+      query: ({ id, changes }) => ({ url: `admin/products/${id}`, method: 'PATCH', body: changes }),
+      invalidatesTags: ['Admin', 'Catalog'],
+    }),
+    updateAdminVariant: build.mutation<AdminVariant, { id: string; changes: VariantUpdate }>({
+      query: ({ id, changes }) => ({ url: `admin/variants/${id}`, method: 'PATCH', body: changes }),
+      invalidatesTags: ['Admin', 'Catalog', 'Cart'],
+    }),
+    adjustInventory: build.mutation<{ onHand: number; reserved: number }, InventoryAdjustment>({
+      query: (body) => ({ url: 'admin/inventory/adjustments', method: 'POST', body }),
+      invalidatesTags: ['Admin', 'Catalog'],
+    }),
+    getAdminOrders: build.query<AdminOrder[], void>({
+      query: () => 'admin/orders',
+      providesTags: ['Admin'],
+    }),
+    updateAdminOrder: build.mutation<AdminOrder, { id: string; changes: OrderUpdate }>({
+      query: ({ id, changes }) => ({ url: `admin/orders/${id}`, method: 'PATCH', body: changes }),
+      invalidatesTags: ['Admin', 'Catalog'],
+    }),
   }),
 })
 
@@ -243,4 +324,10 @@ export const {
   useRegisterMutation,
   useLoginMutation,
   useLogoutMutation,
+  useGetAdminProductsQuery,
+  useUpdateAdminProductMutation,
+  useUpdateAdminVariantMutation,
+  useAdjustInventoryMutation,
+  useGetAdminOrdersQuery,
+  useUpdateAdminOrderMutation,
 } = catalogApi

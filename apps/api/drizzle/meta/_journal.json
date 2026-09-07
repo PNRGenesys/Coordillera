@@ -22,6 +22,13 @@
       "when": 1788749666371,
       "tag": "0002_classy_doctor_octopus",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788750486170,
+      "tag": "0003_loose_squadron_sinister",
+      "breakpoints": true
     }
   ]
 }

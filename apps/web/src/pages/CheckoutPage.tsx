@@ -1,68 +1,22 @@
 import { styled } from '@linaria/react'
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Section, SectionHeader, SectionTitle } from '../components/primitives'
+import { Field, FieldRow, Input, PrimaryButton, Section, SectionHeader, SectionTitle } from '../components/primitives'
 import { StateMessage } from '../components/StateMessage'
 import { selectSessionId } from '../store/cart-slice'
-import { useCheckoutMutation, type CheckoutInput, type OrderStatus, type ShippingAddress } from '../store/catalog-api'
+import { useCheckoutMutation, type CheckoutInput, type ShippingAddress } from '../store/catalog-api'
 import { useAccount } from '../lib/use-account'
 import { useAppSelector } from '../store/hooks'
 import { formatPrice } from '../lib/format-price'
+import { orderStatusKeys } from '../lib/order-status'
 import { useTranslation } from '../lib/use-translation'
-import type { TranslationKey } from '../lib/translations'
-
-const orderStatusKeys: Record<OrderStatus, TranslationKey> = {
-  pending_payment: 'orderStatus.pending_payment',
-  paid: 'orderStatus.paid',
-  processing: 'orderStatus.processing',
-  fulfilled: 'orderStatus.fulfilled',
-  shipped: 'orderStatus.shipped',
-  delivered: 'orderStatus.delivered',
-  cancelled: 'orderStatus.cancelled',
-  refunded: 'orderStatus.refunded',
-}
 
 const Form = styled.form`
   display: grid;
   gap: 1rem;
   max-width: 480px;
 `
-const Row = styled.div`
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: 1fr 1fr;
-`
-const Field = styled.label`
-  display: flex;
-  flex-direction: column;
-  font-size: 0.72rem;
-  font-weight: 700;
-  gap: 0.35rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-`
-const Input = styled.input`
-  border: 1px solid var(--color-border);
-  font-size: 0.9rem;
-  padding: 0.6rem 0.75rem;
-`
-const SubmitButton = styled.button`
-  background: var(--color-ink);
-  border: 1px solid var(--color-ink);
-  color: var(--color-background);
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+const SubmitButton = styled(PrimaryButton)`
   margin-top: 1rem;
-  padding: 1rem 1.5rem;
-  text-transform: uppercase;
-
-  &:disabled {
-    background: transparent;
-    border-color: var(--color-border);
-    color: var(--color-border);
-    cursor: not-allowed;
-  }
 `
 const Confirmation = styled.div`
   border: 1px solid var(--color-accent);
@@ -144,7 +98,7 @@ export function CheckoutPage() {
           {t('checkout.email')}
           <Input type="email" required value={form.email} onChange={updateField('email')} />
         </Field>
-        <Row>
+        <FieldRow>
           <Field>
             {t('checkout.firstName')}
             <Input required value={form.firstName} onChange={updateField('firstName')} />
@@ -153,7 +107,7 @@ export function CheckoutPage() {
             {t('checkout.lastName')}
             <Input required value={form.lastName} onChange={updateField('lastName')} />
           </Field>
-        </Row>
+        </FieldRow>
         <Field>
           {t('checkout.phone')}
           <Input required value={form.phone} onChange={updateField('phone')} />
@@ -166,7 +120,7 @@ export function CheckoutPage() {
           {t('checkout.line2')}
           <Input value={form.shippingAddress.line2 ?? ''} onChange={updateAddressField('line2')} />
         </Field>
-        <Row>
+        <FieldRow>
           <Field>
             {t('checkout.city')}
             <Input required value={form.shippingAddress.city} onChange={updateAddressField('city')} />
@@ -175,8 +129,8 @@ export function CheckoutPage() {
             {t('checkout.region')}
             <Input required value={form.shippingAddress.region} onChange={updateAddressField('region')} />
           </Field>
-        </Row>
-        <Row>
+        </FieldRow>
+        <FieldRow>
           <Field>
             {t('checkout.postalCode')}
             <Input required value={form.shippingAddress.postalCode} onChange={updateAddressField('postalCode')} />
@@ -185,7 +139,7 @@ export function CheckoutPage() {
             {t('checkout.country')}
             <Input required maxLength={2} value={form.shippingAddress.country} onChange={updateAddressField('country')} />
           </Field>
-        </Row>
+        </FieldRow>
         <SubmitButton type="submit" disabled={checkoutState.isLoading}>
           {t('checkout.placeOrder')}
         </SubmitButton>

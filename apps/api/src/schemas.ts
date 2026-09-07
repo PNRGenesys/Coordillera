@@ -47,6 +47,39 @@ export const loginSchema = z.object({ email: z.string().email().max(320), passwo
 
 export const restockRequestSchema = z.object({ variantId: z.string().uuid(), email: z.string().email() })
 
+export const ORDER_STATUSES = ['pending_payment', 'paid', 'processing', 'fulfilled', 'shipped', 'delivered', 'cancelled', 'refunded'] as const
+
+export const idParamSchema = z.object({ id: z.string().uuid() })
+
+/** Every admin update is partial, but an empty body would be a silent no-op. */
+function requireAtLeastOneField<Shape extends z.ZodRawShape>(schema: z.ZodObject<Shape>) {
+  return schema.refine((value) => Object.keys(value).length > 0, { message: 'At least one field is required' })
+}
+
+export const productUpdateSchema = requireAtLeastOneField(z.object({
+  name: z.string().min(2).max(180).optional(),
+  description: z.string().max(10_000).optional(),
+  composition: z.string().max(240).optional(),
+  status: z.enum(['draft', 'active', 'archived']).optional(),
+  release: z.enum(['available', 'preorder', 'coming_soon']).optional(),
+  categoryId: z.string().uuid().optional(),
+  collectionId: z.string().uuid().optional(),
+}))
+
+export const variantUpdateSchema = requireAtLeastOneField(z.object({
+  name: z.string().min(1).max(180).optional(),
+  color: z.string().max(60).optional(),
+  size: z.string().max(30).optional(),
+  priceCents: z.number().int().positive().optional(),
+  compareAtPriceCents: z.number().int().positive().optional(),
+}))
+
+export const orderUpdateSchema = requireAtLeastOneField(z.object({
+  status: z.enum(ORDER_STATUSES).optional(),
+  carrier: z.string().max(120).optional(),
+  trackingNumber: z.string().max(120).optional(),
+}))
+
 export const inventoryAdjustmentSchema = z.object({
   variantId: z.string().uuid(),
   quantity: z.number().int().refine((value) => value !== 0, { message: 'Quantity must not be zero' }),

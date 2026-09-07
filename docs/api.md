@@ -33,7 +33,7 @@ POST /api/auth/logout                                                           
 GET  /api/auth/me                                                                                                     -> 200 { "account": AccountProfile | ausente }
 ```
 
-`AccountProfile = { id, email, firstName, lastName, phone }`. La contraseña nunca sale en una respuesta.
+`AccountProfile = { id, email, firstName, lastName, phone, role }`, con `role` igual a `customer` o `admin`. La contraseña nunca sale en una respuesta.
 
 Registrar un correo que ya usó un invitado en el checkout reclama ese cliente en vez de duplicarlo. Si el correo ya tiene contraseña, responde `409 email_taken`. Un correo desconocido y una contraseña incorrecta devuelven el mismo `401 invalid_credentials`, para no revelar qué cuentas existen.
 
@@ -138,16 +138,24 @@ POST /api/restock-requests   { "variantId": "uuid", "email": "cliente@ejemplo.co
 
 ## Errores
 
-Toda respuesta de error tiene la forma `{ code, message, details }`. Códigos actuales: `cart_not_found`, `cart_empty`, `cart_item_not_found`, `product_not_found`, `variant_not_found`, `collection_not_found`, `out_of_stock`, `invalid_adjustment`, `email_taken`, `invalid_credentials`, `invalid_request` (payload inválido según Zod), `internal_error`.
+Toda respuesta de error tiene la forma `{ code, message, details }`. Códigos actuales: `cart_not_found`, `cart_empty`, `cart_item_not_found`, `product_not_found`, `variant_not_found`, `collection_not_found`, `out_of_stock`, `invalid_adjustment`, `email_taken`, `invalid_credentials`, `unauthenticated`, `forbidden`, `order_not_found`, `invalid_status_change`, `invalid_request` (payload inválido según Zod), `internal_error`.
 
 ## Administracion
 
-Toda ruta administrativa exige el encabezado `x-admin-key: <ADMIN_API_KEY>`.
+Toda ruta administrativa exige la cookie de sesión de una cuenta con `role = admin`. Sin sesión responde `401 unauthenticated`; con una cuenta normal, `403 forbidden`. El rol se otorga con `npm.cmd run admin:grant --workspace=@coordillera/api -- <correo>`.
 
 | Metodo | Ruta | Funcion |
 | --- | --- | --- |
-| GET | `/api/admin/inventory` | Lista inventario por variante con alerta de stock bajo. |
-| POST | `/api/admin/inventory/adjustments` | Ajusta el stock de una variante y deja trazabilidad (`inventory_movements`). |
+| GET | `/api/admin/products` | Lista todos los productos (incluidos borradores y archivados) con sus variantes, precios y existencias. |
+| PATCH | `/api/admin/products/:id` | Cambia nombre, descripción, composición, estado, lanzamiento, categoría o colección. |
+| PATCH | `/api/admin/variants/:id` | Cambia nombre, color, talla o precio de una variante. |
 | POST | `/api/admin/products` | Crea un producto en borrador, sus variantes e inventario inicial. |
+| POST | `/api/admin/inventory/adjustments` | Ajusta el stock de una variante y deja trazabilidad (`inventory_movements`). |
+| GET | `/api/admin/orders` | Lista los pedidos con cliente, dirección, líneas y datos de envío. |
+| PATCH | `/api/admin/orders/:id` | Cambia el estado del pedido y registra transportadora y número de guía. |
 
-No existe interfaz visual para estas rutas todavía (ver `docs/pending-work.md`).
+Todas las actualizaciones son parciales y rechazan un cuerpo vacío (`400 invalid_request`).
+
+Cambiar un pedido a `paid` convierte sus reservas en venta (descuenta `on_hand` y libera `reserved`); pasarlo a `cancelled` o `refunded` devuelve las unidades. Un pedido cancelado o reembolsado ya no puede cambiar de estado (`409 invalid_status_change`).
+
+La interfaz vive en `/admin` y solo se muestra a las cuentas con rol de administrador.

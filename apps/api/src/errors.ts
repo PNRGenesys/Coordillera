@@ -12,6 +12,10 @@ export type DomainErrorCode =
   | 'invalid_adjustment'
   | 'email_taken'
   | 'invalid_credentials'
+  | 'unauthenticated'
+  | 'forbidden'
+  | 'order_not_found'
+  | 'invalid_status_change'
 
 const statusByCode: Record<DomainErrorCode, number> = {
   cart_not_found: 404,
@@ -24,6 +28,10 @@ const statusByCode: Record<DomainErrorCode, number> = {
   invalid_adjustment: 409,
   email_taken: 409,
   invalid_credentials: 401,
+  unauthenticated: 401,
+  forbidden: 403,
+  order_not_found: 404,
+  invalid_status_change: 409,
 }
 
 export class DomainError extends Error {

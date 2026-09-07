@@ -1,6 +1,6 @@
 import { styled } from '@linaria/react'
 import { useState, type ChangeEvent, type FormEvent } from 'react'
-import { Section, SectionHeader, SectionTitle } from '../components/primitives'
+import { Field, FieldRow, Input, PrimaryButton, Section, SectionHeader, SectionTitle } from '../components/primitives'
 import { StateMessage } from '../components/StateMessage'
 import { accountDisplayName, accountErrorKey, PASSWORD_MIN_LENGTH } from '../lib/account'
 import { useAccount } from '../lib/use-account'
@@ -14,49 +14,12 @@ const Form = styled.form`
   gap: 1rem;
   max-width: 420px;
 `
-const Row = styled.div`
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: 1fr 1fr;
-`
-const Field = styled.label`
-  display: flex;
-  flex-direction: column;
-  font-size: 0.72rem;
-  font-weight: 700;
-  gap: 0.35rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-`
-const Input = styled.input`
-  border: 1px solid var(--color-border);
-  font-size: 0.9rem;
-  padding: 0.6rem 0.75rem;
-`
 const Hint = styled.span`
   color: var(--color-accent);
   font-size: 0.7rem;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
-`
-const PrimaryButton = styled.button`
-  background: var(--color-ink);
-  border: 1px solid var(--color-ink);
-  color: var(--color-background);
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  padding: 1rem 1.5rem;
-  text-transform: uppercase;
-
-  &:disabled {
-    background: transparent;
-    border-color: var(--color-border);
-    color: var(--color-border);
-    cursor: not-allowed;
-  }
 `
 const SwitchButton = styled.button`
   background: transparent;
@@ -162,7 +125,7 @@ export function AccountPage() {
         </Field>
         {isRegister && (
           <>
-            <Row>
+            <FieldRow>
               <Field>
                 {t('account.firstName')}
                 <Input required autoComplete="given-name" value={form.firstName} onChange={updateField('firstName')} />
@@ -171,7 +134,7 @@ export function AccountPage() {
                 {t('account.lastName')}
                 <Input required autoComplete="family-name" value={form.lastName} onChange={updateField('lastName')} />
               </Field>
-            </Row>
+            </FieldRow>
             <Field>
               {t('account.phone')}
               <Input autoComplete="tel" value={form.phone ?? ''} onChange={updateField('phone')} />

@@ -5,10 +5,13 @@ import type { FastifyReply, FastifyRequest } from 'fastify'
 import { config } from '../config.js'
 import { db } from '../db/client.js'
 import { customerSessions, customers } from '../db/schema.js'
+import { DomainError } from '../errors.js'
 
 export const SESSION_COOKIE = 'coordillera_session'
 
 const TOKEN_BYTES = 32
+
+export type CustomerRole = 'customer' | 'admin'
 
 export type AccountProfile = {
   id: string
@@ -16,6 +19,7 @@ export type AccountProfile = {
   firstName: string | null
   lastName: string | null
   phone: string | null
+  role: CustomerRole
 }
 
 function hashToken(token: string): string {
@@ -45,8 +49,16 @@ export async function findSessionCustomer(request: FastifyRequest): Promise<Acco
   const token = request.cookies[SESSION_COOKIE]
   if (!token) return undefined
 
-  const [customer] = await db.select({ id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName, phone: customers.phone })
+  const [customer] = await db.select({ id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName, phone: customers.phone, role: customers.role })
     .from(customerSessions).innerJoin(customers, eq(customers.id, customerSessions.customerId))
     .where(and(eq(customerSessions.tokenHash, hashToken(token)), gt(customerSessions.expiresAt, new Date())))
   return customer
+}
+
+/** Guard for `/api/admin/*`: the session must exist and belong to an administrator. */
+export async function requireAdmin(request: FastifyRequest): Promise<AccountProfile> {
+  const account = await findSessionCustomer(request)
+  if (!account) throw new DomainError('unauthenticated', 'Sign in to continue')
+  if (account.role !== 'admin') throw new DomainError('forbidden', 'This account is not an administrator')
+  return account
 }

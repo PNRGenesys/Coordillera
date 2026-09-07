@@ -21,7 +21,15 @@ npm.cmd run dev
 - API: `http://localhost:3000`
 - Base de datos: `localhost:5432`
 
-La configuracion local de API esta en `apps/api/.env`. Nunca se deben versionar claves reales de produccion. Ademas de `DATABASE_URL` y `ADMIN_API_KEY`, acepta `SESSION_TTL_DAYS` (duracion de la cookie de sesion) y `PASSWORD_MIN_LENGTH`; ambas tienen valor por defecto.
+La configuracion local de API esta en `apps/api/.env`. Nunca se deben versionar claves reales de produccion. Ademas de `DATABASE_URL`, acepta `SESSION_TTL_DAYS` (duracion de la cookie de sesion) y `PASSWORD_MIN_LENGTH`; ambas tienen valor por defecto.
+
+## Panel de administracion
+
+1. Registrar la cuenta desde la tienda (`/account`).
+2. Ejecutar `npm.cmd run admin:grant --workspace=@coordillera/api -- <correo>`.
+3. Volver a cargar la tienda: aparece el enlace `Admin` en la cabecera y `/admin` queda disponible.
+
+El rol solo se otorga por linea de comandos; no hay forma de ascender una cuenta desde la interfaz.
 
 ## Comandos frecuentes
 
@@ -40,6 +48,7 @@ La configuracion local de API esta en `apps/api/.env`. Nunca se deben versionar 
 | `npm.cmd run db:seed --workspace=@coordillera/api` | Carga datos de demostracion idempotentes (productos, colecciones, inventario). |
 | `npm.cmd run db:studio --workspace=@coordillera/api` | Abre Drizzle Studio. |
 | `npm.cmd run inventory:release-expired --workspace=@coordillera/api` | Libera reservas de inventario vencidas (programar cada pocos minutos en produccion). |
+| `npm.cmd run admin:grant --workspace=@coordillera/api -- <correo>` | Convierte en administrador una cuenta ya registrada en la tienda. |
 
 ### Version de Node para las pruebas
 
