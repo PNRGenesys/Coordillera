@@ -17,6 +17,7 @@ const baseProduct: CatalogProductSummary = {
   collectionName: null,
   minPriceCents: 12_5000,
   maxPriceCents: 12_5000,
+  compareAtPriceCents: null,
   colors: [{ value: 'Moss', label: 'Musgo' }],
   sizes: [{ value: 'M', label: 'M' }],
   availableUnits: 10,
@@ -59,5 +60,30 @@ describe('ProductCard', () => {
   it('flags preorder releases regardless of stock', () => {
     renderCard({ ...baseProduct, release: 'preorder' })
     expect(screen.getByText('Preventa')).toBeInTheDocument()
+  })
+
+  it('shows the discount badge and the struck-through price when a compare-at price is set', () => {
+    renderCard({ ...baseProduct, minPriceCents: 70_00, maxPriceCents: 70_00, compareAtPriceCents: 100_00 })
+    expect(screen.getByText('-30%')).toBeInTheDocument()
+  })
+
+  it('does not show a discount badge without a compare-at price', () => {
+    renderCard(baseProduct)
+    expect(screen.queryByText(/^-\d+%$/)).not.toBeInTheDocument()
+  })
+
+  it('shows how many colors are available when there is more than one', () => {
+    renderCard({ ...baseProduct, colors: [{ value: 'Moss', label: 'Musgo' }, { value: 'Sand', label: 'Arena' }] })
+    expect(screen.getByText('2 colores')).toBeInTheDocument()
+  })
+
+  it('does not show a color count with a single color', () => {
+    renderCard(baseProduct)
+    expect(screen.queryByText(/colores$/)).not.toBeInTheDocument()
+  })
+
+  it('links the product image to the product page', () => {
+    renderCard(baseProduct)
+    expect(screen.getByRole('link', { name: baseProduct.name })).toHaveAttribute('href', '/product/ridgeline-tee')
   })
 })

@@ -243,6 +243,7 @@ async function seed(): Promise<void> {
     }).onConflictDoNothing({ target: products.slug }).returning({ id: products.id })
 
     const [stored] = inserted ? [inserted] : await db.select({ id: products.id }).from(products).where(eq(products.slug, product.slug))
+    if (!stored) throw new Error(`Product ${product.slug} was neither inserted nor found by slug`)
     if (inserted) await db.insert(productImages).values({ productId: stored.id, url: `${PRODUCT_IMAGE_BASE}/${product.slug}.jpg`, alt: product.name, position: 0 })
     else await db.update(products).set({ translations, updatedAt: new Date() }).where(eq(products.id, stored.id))
 
@@ -258,6 +259,7 @@ async function seed(): Promise<void> {
         continue
       }
       const [stock] = await db.insert(inventoryItems).values({ variantId: createdVariant.id, onHand: variant.stock, reorderPoint: 3 }).returning({ id: inventoryItems.id })
+      if (!stock) throw new Error(`Inventory item for SKU ${sku} was not created`)
       if (variant.stock) await db.insert(inventoryMovements).values({ inventoryItemId: stock.id, type: 'restock', quantity: variant.stock, note: 'Demo seed stock' })
     }
   }
@@ -267,7 +269,7 @@ async function seed(): Promise<void> {
     .where(notInArray(products.slug, productSeeds.map((product) => product.slug)))
 
   const [summary] = await db.select({ total: sql<number>`count(*)::int` }).from(products).where(eq(products.status, 'active'))
-  console.info(`Seed completed. Active products: ${summary.total}`)
+  console.info(`Seed completed. Active products: ${summary?.total ?? 0}`)
 }
 
 await seed()

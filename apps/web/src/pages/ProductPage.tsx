@@ -5,8 +5,10 @@ import { Price } from '../components/Price'
 import { QuantityStepper } from '../components/QuantityStepper'
 import { Section } from '../components/primitives'
 import { SizeGuideTable } from '../components/SizeGuideTable'
+import { ProductDetailSkeleton } from '../components/Skeleton'
 import { StateMessage } from '../components/StateMessage'
 import { VariantSelector } from '../components/VariantSelector'
+import { useAccount } from '../lib/use-account'
 import { useTranslation } from '../lib/use-translation'
 import { sortVariantsBySizeGuide } from '../lib/variant-order'
 import { selectSessionId } from '../store/cart-slice'
@@ -22,15 +24,49 @@ const Layout = styled.div`
 
   @media (max-width: 800px) {
     grid-template-columns: 1fr;
+    /* Leaves room so the fixed mobile buy bar never covers the last field of the page. */
+    padding-bottom: 5.5rem;
   }
 `
 const Gallery = styled.div`
   display: grid;
-  gap: 0.75rem;
+  gap: 0.6rem;
+`
+const ActiveImageWrapper = styled.div`
+  aspect-ratio: 0.9;
+  background: var(--color-surface);
+  position: relative;
 `
 const GalleryImage = styled.img`
-  background: var(--color-surface);
+  height: 100%;
+  object-fit: cover;
   width: 100%;
+`
+const GalleryNavButton = styled.button`
+  align-items: center;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  display: flex;
+  font-size: 1.1rem;
+  height: 2.25rem;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.25rem;
+`
+const PrevImageButton = styled(GalleryNavButton)`
+  left: 0.6rem;
+`
+const NextImageButton = styled(GalleryNavButton)`
+  right: 0.6rem;
+`
+const GalleryCounter = styled.p`
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  margin: 0;
+  text-align: center;
 `
 const GalleryPlaceholder = styled.div`
   align-items: center;
@@ -50,8 +86,8 @@ const Info = styled.div`
 const ProductName = styled.h1`
   font-family: var(--font-display);
   font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 400;
-  letter-spacing: -0.05em;
+  font-weight: var(--font-display-weight);
+  letter-spacing: var(--font-display-tracking);
   margin: 0;
 `
 const ProductPrice = styled.p`
@@ -99,17 +135,45 @@ const Confirmation = styled.p`
   font-size: 0.8rem;
   margin: 0;
 `
+/** Quick add-to-cart access on mobile, where the button in `Info` may sit far below the fold. */
+const MobileBuyBar = styled.div`
+  display: none;
+
+  @media (max-width: 800px) {
+    align-items: center;
+    background: var(--color-background);
+    border-top: 1px solid var(--color-border);
+    bottom: 0;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    left: 0;
+    padding: 0.85rem clamp(1.25rem, 4vw, 4rem);
+    position: fixed;
+    right: 0;
+    z-index: 3;
+  }
+`
+const MobileBuyPrice = styled.p`
+  font-size: 1rem;
+  margin: 0;
+`
+const MobileBuyButton = styled(AddButton)`
+  padding: 0.75rem 1.25rem;
+`
 
 export function ProductPage() {
   const { t, language } = useTranslation()
   const { slug } = useParams<{ slug: string }>()
   const sessionId = useAppSelector(selectSessionId)
+  const { account } = useAccount()
   const { data: product, isLoading, isError } = useGetProductQuery({ slug: slug ?? '', lang: language }, { skip: !slug })
   const [addCartItem, addCartItemState] = useAddCartItemMutation()
   const [requestRestock, requestRestockState] = useRequestRestockMutation()
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(undefined)
   const [quantity, setQuantity] = useState(1)
   const [restockEmail, setRestockEmail] = useState('')
+  const [imageIndex, setImageIndex] = useState(0)
 
   const variants = useMemo(
     () => (product ? sortVariantsBySizeGuide(product.variants, product.sizeGuideColumns, product.sizeGuideRows) : []),
@@ -121,11 +185,25 @@ export function ProductPage() {
     [variants, selectedVariantId],
   )
 
-  if (isLoading) return <Section><StateMessage kind="loading">{t('product.loading')}</StateMessage></Section>
+  if (isLoading) return <Section><ProductDetailSkeleton /></Section>
   if (isError || !product) return <Section><StateMessage kind="error">{t('product.notFound')}</StateMessage></Section>
 
   const isOutOfStock = (selectedVariant?.availableUnits ?? 0) <= 0
   const isLastStock = !isOutOfStock && (selectedVariant?.availableUnits ?? 0) <= LAST_STOCK_THRESHOLD
+  const clampedImageIndex = product.images.length ? Math.min(imageIndex, product.images.length - 1) : 0
+  const activeImage = product.images[clampedImageIndex]
+
+  function showPreviousImage(): void {
+    if (!product) return
+    const imageCount = product.images.length
+    setImageIndex((current) => (current - 1 + imageCount) % imageCount)
+  }
+
+  function showNextImage(): void {
+    if (!product) return
+    const imageCount = product.images.length
+    setImageIndex((current) => (current + 1) % imageCount)
+  }
 
   function addToCart(): void {
     if (!selectedVariant) return
@@ -140,23 +218,38 @@ export function ProductPage() {
   function submitRestockRequest(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
     if (!selectedVariant) return
-    void requestRestock({ variantId: selectedVariant.id, email: restockEmail })
+    void requestRestock({ variantId: selectedVariant.id, email: account ? undefined : restockEmail })
   }
 
   return (
     <Section>
       <Layout>
         <Gallery>
-          {product.images.length > 0
-            ? product.images.map((image) => <GalleryImage key={image.url} src={image.url} alt={image.alt ?? product.name} />)
-            : <GalleryPlaceholder>{product.name}</GalleryPlaceholder>}
+          {activeImage ? (
+            <>
+              <ActiveImageWrapper>
+                <GalleryImage src={activeImage.url} alt={activeImage.alt ?? product.name} />
+                {product.images.length > 1 && (
+                  <>
+                    <PrevImageButton type="button" aria-label={t('product.previousImage')} onClick={showPreviousImage}>‹</PrevImageButton>
+                    <NextImageButton type="button" aria-label={t('product.nextImage')} onClick={showNextImage}>›</NextImageButton>
+                  </>
+                )}
+              </ActiveImageWrapper>
+              {product.images.length > 1 && (
+                <GalleryCounter>{t('product.imageCounter', { current: clampedImageIndex + 1, total: product.images.length })}</GalleryCounter>
+              )}
+            </>
+          ) : (
+            <GalleryPlaceholder>{product.name}</GalleryPlaceholder>
+          )}
         </Gallery>
         <Info>
           <div>
             <ProductName>{product.name}</ProductName>
             {selectedVariant && (
               <ProductPrice>
-                <Price minCents={selectedVariant.priceCents} maxCents={selectedVariant.priceCents} />
+                <Price minCents={selectedVariant.priceCents} maxCents={selectedVariant.priceCents} compareAtCents={selectedVariant.compareAtPriceCents} />
               </ProductPrice>
             )}
           </div>
@@ -170,13 +263,18 @@ export function ProductPage() {
                 <Confirmation>{t('product.restockConfirmation')}</Confirmation>
               ) : (
                 <RestockForm onSubmit={submitRestockRequest}>
-                  <RestockInput
-                    type="email"
-                    required
-                    placeholder={t('product.restockEmailPlaceholder')}
-                    value={restockEmail}
-                    onChange={(event) => setRestockEmail(event.target.value)}
-                  />
+                  {/* A signed in customer is already identified by the session, so the form does not ask again. */}
+                  {account ? (
+                    <Confirmation>{t('product.restockWithAccount', { email: account.email })}</Confirmation>
+                  ) : (
+                    <RestockInput
+                      type="email"
+                      required
+                      placeholder={t('product.restockEmailPlaceholder')}
+                      value={restockEmail}
+                      onChange={(event) => setRestockEmail(event.target.value)}
+                    />
+                  )}
                   <AddButton type="submit" disabled={requestRestockState.isLoading}>
                     {t('product.notifyMe')}
                   </AddButton>
@@ -206,6 +304,16 @@ export function ProductPage() {
           )}
         </Info>
       </Layout>
+      {!isOutOfStock && selectedVariant && (
+        <MobileBuyBar>
+          <MobileBuyPrice>
+            <Price minCents={selectedVariant.priceCents} maxCents={selectedVariant.priceCents} compareAtCents={selectedVariant.compareAtPriceCents} />
+          </MobileBuyPrice>
+          <MobileBuyButton type="button" onClick={addToCart} disabled={addCartItemState.isLoading}>
+            {addCartItemState.isSuccess ? t('product.addedToBag') : t('product.addToBag')}
+          </MobileBuyButton>
+        </MobileBuyBar>
+      )}
     </Section>
   )
 }

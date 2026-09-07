@@ -49,6 +49,17 @@ export function CheckoutPage() {
       firstName: current.firstName || (account.firstName ?? ''),
       lastName: current.lastName || (account.lastName ?? ''),
       phone: current.phone || (account.phone ?? ''),
+      shippingAddress: account.shippingAddress
+        ? {
+          ...current.shippingAddress,
+          line1: current.shippingAddress.line1 || account.shippingAddress.line1,
+          line2: current.shippingAddress.line2 || (account.shippingAddress.line2 ?? ''),
+          city: current.shippingAddress.city || account.shippingAddress.city,
+          region: current.shippingAddress.region || account.shippingAddress.region,
+          postalCode: current.shippingAddress.postalCode || account.shippingAddress.postalCode,
+          country: current.shippingAddress.country || account.shippingAddress.country,
+        }
+        : current.shippingAddress,
     }))
   }, [account])
 

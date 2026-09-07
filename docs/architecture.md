@@ -46,6 +46,8 @@ Un cliente puede comprar como invitado o con cuenta. La cuenta vive en la misma 
 - La sesion es un token aleatorio guardado en `customer_sessions`; la base solo almacena su hash SHA-256, asi que un volcado de la base no permite suplantar a nadie.
 - El token viaja en la cookie `cordillera_session` (`httpOnly`, `sameSite=lax`, `secure` en produccion), no en `localStorage`.
 - El frontend no guarda la sesion en Redux: `GET /api/auth/me` es la unica fuente, envuelta en `src/lib/use-account.ts`.
+- `/account` muestra los datos de la cuenta y `/account/edit` es la pagina de edicion; el cliente cambia alli nombre, correo, telefono, foto y direccion de envio con `PATCH /api/auth/me`, y al guardar vuelve a la ficha. La direccion guardada prellena el checkout y el correo de la cuenta evita volver a pedirlo para la lista de reposicion.
+- La foto se guarda como data URL en la columna `customers.avatar`, porque el proyecto todavia no tiene almacenamiento de archivos. El navegador la recorta en cuadrado y la reduce a 256 px antes de enviarla (`src/lib/avatar.ts`), y la API limita el texto con `AVATAR_MAX_CHARACTERS`. Al haber almacenamiento externo, esa columna deberia pasar a ser una URL.
 
 ## Idiomas
 
@@ -73,10 +75,11 @@ Antes de produccion se implementaran verificacion de correo y recuperacion de co
 - Linaria es el sistema obligatorio de estilos. No se agregan hojas CSS nuevas; los tokens de color/tipografia viven en variables CSS globales (`src/components/theme.ts`). La extraccion la hace `@wyw-in-js/vite` (el motor de Linaria 8); el plugin antiguo `@linaria/vite` no sirve con esta version.
 - RTK Query (`src/store/catalog-api.ts`) es la unica capa para datos remotos; sus consultas y mutaciones generan hooks tipados y administran la cache (`Catalog` y `Cart` como tags de invalidacion).
 - Redux mantiene solo estado de cliente que no pertenece al servidor: el `sessionId` del carrito (`src/store/cart-slice.ts`) y el idioma de interfaz (`src/store/ui-slice.ts`). El conteo del carrito sale siempre de `getCart`, nunca duplicado en el store.
-- `react-router-dom` define las paginas (`src/pages/`): inicio, catalogo con filtros, detalle de producto, carrito, checkout, cuenta, panel de administracion y 404, todas dentro de un `Layout` compartido (`src/components/Layout.tsx`).
+- `react-router-dom` define las paginas (`src/pages/`): inicio, catalogo con filtros, detalle de producto, carrito, checkout, cuenta, edicion de perfil, panel de administracion y 404, todas dentro de un `Layout` compartido (`src/components/Layout.tsx`).
 - Los campos de formulario (`Field`, `FieldRow`, `Input`, `Select`, `PrimaryButton`) viven en `src/components/primitives.ts` y los comparten checkout, cuenta y panel de administracion.
 - Idioma: la interfaz es en español por defecto, con un selector ES/EN que traduce la copia estatica (`src/lib/translations.ts` + `src/lib/use-translation.ts`) y pide el catalogo en ese idioma (ver "Idiomas"). La moneda de la tienda es COP y no cambia con el idioma; solo cambia el formato numerico (`es-CO` / `en-US`).
-- Las imagenes de catalogo son fichas de diseno generadas con IA para probar la tienda y se sirven como estaticos desde `apps/web/public/products/<slug>.jpg` y `apps/web/public/collections/<slug>.jpg`. El seed arma la URL a partir del slug, asi que agregar un producto implica dejar su imagen con el mismo nombre. Los banners de marca viven en `apps/web/src/assets/Banners/` (hoy `brand-banner.jpg`, que ocupa el hero del inicio) y `apps/web/public/favicon.ico` es el icono de la pestana.
+- Las imagenes de catalogo son fichas de diseno generadas con IA para probar la tienda y se sirven como estaticos desde `apps/web/public/products/<slug>.jpg` y `apps/web/public/collections/<slug>.jpg`. El seed arma la URL a partir del slug, asi que agregar un producto implica dejar su imagen con el mismo nombre. `apps/web/src/assets/Banners/brand-banner.jpg` es la referencia de marca: no se muestra en la tienda, pero de el salen la paleta monocroma y la tipografia de titulos definidas en `src/components/theme.ts`. `apps/web/public/favicon.ico` es el icono de la pestana.
+- El hero del inicio rota las imagenes de los ultimos productos con un fundido cruzado hecho solo con CSS (`src/components/HeroSlideshow.tsx`): cada diapositiva lleva la misma animacion y un `animation-delay` negativo distinto, sin temporizadores en JavaScript. Reutiliza la consulta que ya alimenta la cuadricula de abajo, asi que no cuesta una peticion extra.
 
 ## Pruebas
 

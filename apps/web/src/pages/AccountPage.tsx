@@ -1,19 +1,30 @@
 import { styled } from '@linaria/react'
 import { useState, type ChangeEvent, type FormEvent } from 'react'
-import { Field, FieldRow, Input, PrimaryButton, Section, SectionHeader, SectionTitle } from '../components/primitives'
+import { AccountAvatar } from '../components/AccountAvatar'
+import {
+  Field,
+  FieldRow,
+  FormGrid,
+  Input,
+  Legend,
+  Note,
+  PrimaryButton,
+  PrimaryLink,
+  Section,
+  SectionHeader,
+  SectionTitle,
+  TextButton,
+} from '../components/primitives'
 import { StateMessage } from '../components/StateMessage'
-import { accountDisplayName, accountErrorKey, PASSWORD_MIN_LENGTH } from '../lib/account'
+import { accountErrorKey, accountFullName, formatAddress, PASSWORD_MIN_LENGTH } from '../lib/account'
 import { useAccount } from '../lib/use-account'
 import { useTranslation } from '../lib/use-translation'
 import { useLoginMutation, useLogoutMutation, useRegisterMutation, type RegisterInput } from '../store/catalog-api'
 
 type Mode = 'signIn' | 'register'
 
-const Form = styled.form`
-  display: grid;
-  gap: 1rem;
-  max-width: 420px;
-`
+const emptyForm: RegisterInput = { email: '', password: '', firstName: '', lastName: '', phone: '' }
+
 const Hint = styled.span`
   color: var(--color-accent);
   font-size: 0.7rem;
@@ -21,31 +32,35 @@ const Hint = styled.span`
   letter-spacing: 0;
   text-transform: none;
 `
-const SwitchButton = styled.button`
-  background: transparent;
-  border: none;
-  color: var(--color-accent);
-  cursor: pointer;
+const SwitchButton = styled(TextButton)`
   font-size: 0.75rem;
-  font-weight: 800;
-  justify-self: start;
   letter-spacing: 0.08em;
-  padding: 0;
-  text-decoration: underline;
-  text-transform: uppercase;
 `
-const Profile = styled.div`
-  border: 1px solid var(--color-border);
+const Summary = styled.div`
   display: grid;
   gap: 0.75rem;
-  max-width: 420px;
-  padding: 2rem;
+  max-width: 460px;
 `
-const ProfileLine = styled.p`
+const Identity = styled.div`
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+`
+const Name = styled.p`
+  font-size: 1.1rem;
+  font-weight: 700;
   margin: 0;
 `
-
-const emptyForm: RegisterInput = { email: '', password: '', firstName: '', lastName: '', phone: '' }
+const Detail = styled.p`
+  font-size: 0.85rem;
+  margin: 0;
+`
+const Actions = styled.div`
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+  margin-top: 1rem;
+`
 
 export function AccountPage() {
   const { t } = useTranslation()
@@ -78,21 +93,34 @@ export function AccountPage() {
 
   if (isLoading) return <Section><StateMessage kind="loading">{t('account.loading')}</StateMessage></Section>
 
+  // Signed in, the account opens on its data; editing lives behind the button below.
   if (account) {
     return (
       <Section>
         <SectionHeader>
           <SectionTitle>{t('account.title')}</SectionTitle>
         </SectionHeader>
-        <Profile>
-          <ProfileLine>{t('account.greeting', { name: accountDisplayName(account) })}</ProfileLine>
-          <ProfileLine>{t('account.emailLabel', { email: account.email })}</ProfileLine>
-          <ProfileLine>{account.phone ? t('account.phoneLabel', { phone: account.phone }) : t('account.phoneMissing')}</ProfileLine>
-          <ProfileLine>{t('account.checkoutNotice')}</ProfileLine>
-          <PrimaryButton type="button" disabled={signOutState.isLoading} onClick={() => void signOut()}>
-            {t('account.signOut')}
-          </PrimaryButton>
-        </Profile>
+        <Summary>
+          <Identity>
+            <AccountAvatar avatar={account.avatar} name={accountFullName(account)} />
+            <div>
+              <Name>{accountFullName(account)}</Name>
+              <Detail>{account.email}</Detail>
+            </div>
+          </Identity>
+          <Detail>{account.phone ? t('account.phoneLabel', { phone: account.phone }) : t('account.phoneMissing')}</Detail>
+
+          <Legend>{t('account.shippingTitle')}</Legend>
+          <Detail>{account.shippingAddress ? formatAddress(account.shippingAddress) : t('account.addressMissing')}</Detail>
+          <Note>{t('account.checkoutNotice')}</Note>
+
+          <Actions>
+            <PrimaryLink to="/account/edit">{t('account.editProfile')}</PrimaryLink>
+            <TextButton type="button" disabled={signOutState.isLoading} onClick={() => void signOut()}>
+              {t('account.signOut')}
+            </TextButton>
+          </Actions>
+        </Summary>
       </Section>
     )
   }
@@ -106,7 +134,7 @@ export function AccountPage() {
         <SectionTitle>{isRegister ? t('account.registerTitle') : t('account.signInTitle')}</SectionTitle>
       </SectionHeader>
       {activeState.isError && <StateMessage kind="error">{t(accountErrorKey(activeState.error))}</StateMessage>}
-      <Form onSubmit={submit}>
+      <FormGrid onSubmit={submit}>
         <Field>
           {t('account.email')}
           <Input type="email" required autoComplete="email" value={form.email} onChange={updateField('email')} />
@@ -147,7 +175,7 @@ export function AccountPage() {
         <SwitchButton type="button" onClick={switchMode}>
           {isRegister ? t('account.switchToSignIn') : t('account.switchToRegister')}
         </SwitchButton>
-      </Form>
+      </FormGrid>
     </Section>
   )
 }

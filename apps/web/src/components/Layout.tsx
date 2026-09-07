@@ -42,8 +42,9 @@ const Brand = styled(Link)`
   color: inherit;
   font-family: var(--font-display);
   font-size: clamp(1.25rem, 5vw, 1.75rem);
-  font-weight: 700;
-  letter-spacing: -0.09em;
+  font-weight: var(--font-display-weight);
+  letter-spacing: var(--font-display-tracking);
+  text-transform: uppercase;
   text-decoration: none;
 `
 const Nav = styled.nav`
@@ -65,6 +66,7 @@ const navItem = css`
 const HeaderActions = styled.div`
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
 `
 const HeaderLink = styled(Link)`
@@ -74,6 +76,14 @@ const HeaderLink = styled(Link)`
   letter-spacing: 0.08em;
   text-decoration: none;
   text-transform: uppercase;
+`
+const Avatar = styled.img`
+  border-radius: 50%;
+  height: 1.5rem;
+  margin-right: 0.4rem;
+  object-fit: cover;
+  vertical-align: middle;
+  width: 1.5rem;
 `
 const Footer = styled.footer`
   background: var(--color-ink);
@@ -90,8 +100,8 @@ const Footer = styled.footer`
 const FooterTitle = styled.h2`
   font-family: var(--font-display);
   font-size: 2rem;
-  font-weight: 400;
-  letter-spacing: -0.05em;
+  font-weight: var(--font-display-weight);
+  letter-spacing: var(--font-display-tracking);
   margin: 0;
 `
 const FooterAction = styled.a`
@@ -104,6 +114,28 @@ const FooterAction = styled.a`
   padding: 1rem 1.35rem;
   text-decoration: none;
   text-transform: uppercase;
+`
+const cartCount = css`
+  display: inline-block;
+
+  @keyframes cartCountPulse {
+    0% {
+      transform: scale(1);
+    }
+    35% {
+      transform: scale(1.3);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+`
+const cartCountPulsing = css`
+  animation: cartCountPulse 320ms ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `
 const LanguageToggle = styled.button`
   background: transparent;
@@ -136,9 +168,14 @@ export function Layout() {
         </Nav>
         <HeaderActions>
           {account?.role === 'admin' && <HeaderLink to="/admin">{t('admin.nav')}</HeaderLink>}
-          <HeaderLink to="/account">{account ? accountDisplayName(account) : t('account.navGuest')}</HeaderLink>
+          <HeaderLink to="/account">
+            {account?.avatar && <Avatar src={account.avatar} alt="" />}
+            {account ? accountDisplayName(account) : t('account.navGuest')}
+          </HeaderLink>
           <HeaderLink to="/cart" aria-label={t('nav.cartLabel')}>
-            {t('nav.bag', { count: cart?.itemCount ?? 0 })}
+            <span key={cart?.itemCount ?? 0} className={cart?.itemCount ? `${cartCount} ${cartCountPulsing}` : cartCount}>
+              {t('nav.bag', { count: cart?.itemCount ?? 0 })}
+            </span>
           </HeaderLink>
           <LanguageToggle type="button" onClick={() => dispatch(setLanguage(language === 'es' ? 'en' : 'es'))}>
             {t('language.toggleLabel')}

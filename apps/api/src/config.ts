@@ -17,5 +17,7 @@ export const config = {
   lowStockThreshold: readNumber('LOW_STOCK_THRESHOLD', 5),
   sessionTtlMs: readNumber('SESSION_TTL_DAYS', 30) * DAY_IN_MS,
   passwordMinLength: readNumber('PASSWORD_MIN_LENGTH', 8),
+  /** Longest data URL accepted for a profile picture; the web app shrinks the file before sending it. */
+  avatarMaxCharacters: readNumber('AVATAR_MAX_CHARACTERS', 200_000),
   isProduction: process.env.NODE_ENV === 'production',
 }

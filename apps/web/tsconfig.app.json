@@ -9,6 +9,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "jsx": "react-jsx",
     "module": "ESNext",

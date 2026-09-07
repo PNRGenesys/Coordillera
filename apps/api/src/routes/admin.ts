@@ -6,7 +6,7 @@ import { db } from '../db/client.js'
 import { availableUnits } from '../db/queries.js'
 import { categories, collections, customers, inventoryItems, inventoryMovements, inventoryReservations, orderItems, orders, productImages, productVariants, products } from '../db/schema.js'
 import { DomainError } from '../errors.js'
-import { idParamSchema, inventoryAdjustmentSchema, orderUpdateSchema, productCreateSchema, productUpdateSchema, variantUpdateSchema } from '../schemas.js'
+import { idParamSchema, inventoryAdjustmentSchema, orderUpdateSchema, productCreateSchema, productDiscountSchema, productUpdateSchema, variantUpdateSchema } from '../schemas.js'
 
 type OrderStatus = (typeof orders.$inferSelect)['status']
 
@@ -142,6 +142,37 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     return updated
   })
 
+  /**
+   * Applies a single discount percentage to every variant of a product. Each variant keeps its own
+   * regular price as the baseline (`compareAtPriceCents` if a discount is already active, its own
+   * `priceCents` otherwise), so re-applying a discount never compounds on top of a previous one.
+   * `discountPercent: 0` restores the regular price and clears the discount.
+   */
+  app.post('/api/admin/products/:id/discount', { preHandler: guard }, async (request) => {
+    const { id } = idParamSchema.parse(request.params)
+    const input = productDiscountSchema.parse(request.body)
+
+    const updated = await db.transaction(async (tx) => {
+      const variants = await tx.select({ id: productVariants.id, priceCents: productVariants.priceCents, compareAtPriceCents: productVariants.compareAtPriceCents })
+        .from(productVariants).where(eq(productVariants.productId, id))
+      if (!variants.length) throw new DomainError('product_not_found', 'Product not found', { id })
+
+      const rows = []
+      for (const variant of variants) {
+        const baseline = variant.compareAtPriceCents ?? variant.priceCents
+        const priceCents = Math.round((baseline * (100 - input.discountPercent)) / 100)
+        const compareAtPriceCents = input.discountPercent > 0 ? baseline : null
+        const [row] = await tx.update(productVariants).set({ priceCents, compareAtPriceCents, updatedAt: new Date() })
+          .where(eq(productVariants.id, variant.id)).returning()
+        if (!row) throw new Error(`Variant ${variant.id} update returned no row`)
+        rows.push(row)
+      }
+      return rows
+    })
+
+    return updated
+  })
+
   app.post('/api/admin/inventory/adjustments', { preHandler: guard }, async (request) => {
     const input = inventoryAdjustmentSchema.parse(request.body)
     const [stock] = await db.update(inventoryItems).set({ onHand: sql`${inventoryItems.onHand} + ${input.quantity}`, updatedAt: new Date() })
@@ -158,9 +189,12 @@ export function registerAdminRoutes(app: FastifyInstance): void {
         name: input.name, slug: input.slug, description: input.description, composition: input.composition,
         categoryId: input.categoryId, collectionId: input.collectionId, release: input.release, status: 'draft',
       }).returning()
+      if (!created) throw new Error('Product insert returned no row')
       for (const variant of input.variants) {
         const [createdVariant] = await tx.insert(productVariants).values({ productId: created.id, sku: variant.sku, name: variant.name, priceCents: variant.priceCents, color: variant.color, size: variant.size }).returning()
+        if (!createdVariant) throw new Error(`Variant insert for SKU ${variant.sku} returned no row`)
         const [stock] = await tx.insert(inventoryItems).values({ variantId: createdVariant.id, onHand: variant.initialStock }).returning()
+        if (!stock) throw new Error(`Inventory item insert for SKU ${variant.sku} returned no row`)
         if (variant.initialStock) await tx.insert(inventoryMovements).values({ inventoryItemId: stock.id, type: 'restock', quantity: variant.initialStock, note: 'Initial stock' })
       }
       return created

@@ -1,10 +1,12 @@
 import { styled } from '@linaria/react'
 import { useState, type FormEvent } from 'react'
 import { centsToUnits, unitsToCents } from '../lib/format-price'
+import { toThumbUrl } from '../lib/image'
 import { useTranslation } from '../lib/use-translation'
 import type { TranslationKey } from '../lib/translations'
 import {
   useAdjustInventoryMutation,
+  useApplyProductDiscountMutation,
   useUpdateAdminProductMutation,
   useUpdateAdminVariantMutation,
   type AdminProduct,
@@ -14,6 +16,15 @@ import {
 } from '../store/catalog-api'
 import { Field, FieldRow, Input, PrimaryButton, Select } from './primitives'
 import { StateMessage } from './StateMessage'
+
+/** Mirrors MAX_DISCOUNT_PERCENT in the API, which is the side that actually enforces it. */
+const MAX_DISCOUNT_PERCENT = 30
+
+function currentDiscountPercent(product: AdminProduct): number {
+  const [firstVariant] = product.variants
+  if (!firstVariant?.compareAtPriceCents) return 0
+  return Math.round((1 - firstVariant.priceCents / firstVariant.compareAtPriceCents) * 100)
+}
 
 const statusKeys: Record<ProductStatus, TranslationKey> = {
   draft: 'admin.statusDraft',
@@ -95,6 +106,12 @@ const Legend = styled.h3`
   margin: 0;
   text-transform: uppercase;
 `
+const DiscountForm = styled.form`
+  align-items: end;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr auto;
+`
 
 export type AdminProductCardProps = {
   product: AdminProduct
@@ -103,13 +120,20 @@ export type AdminProductCardProps = {
 export function AdminProductCard({ product }: AdminProductCardProps) {
   const { t } = useTranslation()
   const [updateProduct, updateProductState] = useUpdateAdminProductMutation()
+  const [applyDiscount, applyDiscountState] = useApplyProductDiscountMutation()
   const [name, setName] = useState(product.name)
   const [status, setStatus] = useState<ProductStatus>(product.status)
   const [release, setRelease] = useState<ProductRelease>(product.release)
+  const [discountPercent, setDiscountPercent] = useState(currentDiscountPercent(product))
 
   function saveProduct(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
     void updateProduct({ id: product.id, changes: { name, status, release } })
+  }
+
+  function saveDiscount(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault()
+    void applyDiscount({ id: product.id, discountPercent })
   }
 
   return (
@@ -117,7 +141,7 @@ export function AdminProductCard({ product }: AdminProductCardProps) {
       <Summary>{`${product.name} — ${t(statusKeys[product.status])}`}</Summary>
       <Body>
         <Head>
-          {product.imageUrl && <Thumb src={product.imageUrl} alt={product.name} />}
+          {product.imageUrl && <Thumb src={toThumbUrl(product.imageUrl)} alt={product.name} loading="lazy" decoding="async" />}
           <div>
             <Slug>{product.slug}</Slug>
             <Form onSubmit={saveProduct}>
@@ -146,6 +170,24 @@ export function AdminProductCard({ product }: AdminProductCardProps) {
             </Form>
           </div>
         </Head>
+        <Legend>{t('admin.discount')}</Legend>
+        <DiscountForm onSubmit={saveDiscount}>
+          <Field>
+            {t('admin.discountPercent')}
+            <Input
+              type="number"
+              min={0}
+              max={MAX_DISCOUNT_PERCENT}
+              required
+              value={discountPercent}
+              onChange={(event) => setDiscountPercent(Number(event.target.value))}
+            />
+          </Field>
+          <PrimaryButton type="submit" disabled={applyDiscountState.isLoading}>
+            {applyDiscountState.isSuccess ? t('admin.saved') : t('admin.applyDiscount')}
+          </PrimaryButton>
+        </DiscountForm>
+        {applyDiscountState.isError && <StateMessage kind="error">{t('admin.updateError')}</StateMessage>}
         <Legend>{t('admin.variants')}</Legend>
         <VariantList>
           {product.variants.map((variant) => <AdminVariantRow key={variant.id} variant={variant} />)}

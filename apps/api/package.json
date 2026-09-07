@@ -18,18 +18,18 @@
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
-    "@fastify/cors": "latest",
-    "dotenv": "latest",
-    "drizzle-orm": "latest",
-    "fastify": "latest",
-    "postgres": "latest",
-    "zod": "latest"
+    "@fastify/cors": "^11.3.0",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "fastify": "^5.11.3",
+    "postgres": "^3.4.9",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "latest",
-    "drizzle-kit": "latest",
-    "tsx": "latest",
-    "typescript": "latest",
+    "@types/node": "^26.2.0",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   }
 }

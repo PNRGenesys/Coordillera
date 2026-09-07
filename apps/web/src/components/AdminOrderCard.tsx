@@ -16,8 +16,8 @@ const Card = styled.article`
 const OrderNumber = styled.h3`
   font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 400;
-  letter-spacing: -0.04em;
+  font-weight: var(--font-display-weight);
+  letter-spacing: var(--font-display-tracking);
   margin: 0;
 `
 const Detail = styled.p`

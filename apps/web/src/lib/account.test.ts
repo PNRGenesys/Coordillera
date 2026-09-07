@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import type { AccountProfile } from '../store/catalog-api'
-import { accountDisplayName, accountErrorKey } from './account'
+import type { AccountProfile, ShippingAddress } from '../store/catalog-api'
+import { accountDisplayName, accountErrorKey, accountFullName, formatAddress } from './account'
 
 function profile(overrides: Partial<AccountProfile> = {}): AccountProfile {
-  return { id: 'id', email: 'ana@cordillera.test', firstName: 'Ana', lastName: 'Ruiz', phone: null, role: 'customer', ...overrides }
+  return { id: 'id', email: 'ana@cordillera.test', firstName: 'Ana', lastName: 'Ruiz', phone: null, role: 'customer', avatar: null, shippingAddress: null, ...overrides }
+}
+
+function address(overrides: Partial<ShippingAddress> = {}): ShippingAddress {
+  return { line1: 'Cra 7 # 45-10', line2: '', city: 'Bogota', region: 'Cundinamarca', postalCode: '110111', country: 'CO', ...overrides }
 }
 
 describe('accountErrorKey', () => {
@@ -28,5 +32,33 @@ describe('accountDisplayName', () => {
 
   it('uses the email when the account has no first name', () => {
     expect(accountDisplayName(profile({ firstName: null }))).toBe('ana@cordillera.test')
+  })
+})
+
+describe('accountFullName', () => {
+  it('joins first and last name', () => {
+    expect(accountFullName(profile())).toBe('Ana Ruiz')
+  })
+
+  it('keeps the half it has', () => {
+    expect(accountFullName(profile({ lastName: null }))).toBe('Ana')
+  })
+
+  it('falls back to the email when there is no name', () => {
+    expect(accountFullName(profile({ firstName: null, lastName: null }))).toBe('ana@cordillera.test')
+  })
+})
+
+describe('formatAddress', () => {
+  it('reads as one line', () => {
+    expect(formatAddress(address())).toBe('Cra 7 # 45-10, Bogota, Cundinamarca, 110111, CO')
+  })
+
+  it('leaves out the parts the customer did not fill', () => {
+    expect(formatAddress(address({ line2: '  ', postalCode: '' }))).toBe('Cra 7 # 45-10, Bogota, Cundinamarca, CO')
+  })
+
+  it('includes the second line when there is one', () => {
+    expect(formatAddress(address({ line2: 'Apto 401' }))).toContain('Apto 401')
   })
 })

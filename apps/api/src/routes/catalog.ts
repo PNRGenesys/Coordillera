@@ -84,6 +84,8 @@ export function registerCatalogRoutes(app: FastifyInstance): void {
       collectionTranslations: collections.translations,
       minPriceCents: sql<number>`min(${productVariants.priceCents})::int`,
       maxPriceCents: sql<number>`max(${productVariants.priceCents})::int`,
+      // Only meaningful when every variant carries the same reference price; the storefront only renders it when minPriceCents === maxPriceCents.
+      compareAtPriceCents: sql<number | null>`min(${productVariants.compareAtPriceCents})::int`,
       availableUnits: productAvailableUnits,
     })
       .from(products)

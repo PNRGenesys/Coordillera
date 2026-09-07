@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { ProductCard } from '../components/ProductCard'
 import { ProductGrid, Section, SectionHeader, SectionTitle } from '../components/primitives'
+import { ProductCardSkeleton } from '../components/Skeleton'
 import { StateMessage } from '../components/StateMessage'
 import { useTranslation } from '../lib/use-translation'
 import { type CatalogAvailability, type CatalogFacet, type CatalogFilters, useGetCategoriesQuery, useGetCollectionsQuery, useGetProductsQuery } from '../store/catalog-api'
@@ -30,7 +31,8 @@ const Select = styled.select`
 const Pagination = styled.div`
   align-items: center;
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   justify-content: center;
   margin-top: 2.5rem;
 `
@@ -41,8 +43,7 @@ const PageButton = styled.button`
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
-  padding: 0.5rem 1rem;
-  text-transform: uppercase;
+  padding: 0.5rem 0.9rem;
 
   &:disabled {
     border-color: var(--color-border);
@@ -50,6 +51,26 @@ const PageButton = styled.button`
     cursor: not-allowed;
   }
 `
+const PageNumberButton = styled(PageButton)<{ $active: boolean }>`
+  background: ${(props) => (props.$active ? 'var(--color-ink)' : 'transparent')};
+  color: ${(props) => (props.$active ? 'var(--color-background)' : 'inherit')};
+`
+const ClearFiltersButton = styled.button`
+  background: transparent;
+  border: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-decoration: underline;
+  text-transform: uppercase;
+`
+const ActiveCount = styled.span`
+  color: var(--color-accent);
+`
+
+const SKELETON_CARD_COUNT = 8
 
 function readAvailability(value: string | null): CatalogAvailability {
   return value === 'in_stock' ? 'in_stock' : 'all'
@@ -91,6 +112,12 @@ export function ShopPage() {
     setSearchParams(next)
   }
 
+  function clearFilters(): void {
+    const next = new URLSearchParams(searchParams)
+    for (const key of ['category', 'color', 'size', 'availability', 'page']) next.delete(key)
+    setSearchParams(next)
+  }
+
   function goToPage(page: number): void {
     const next = new URLSearchParams(searchParams)
     next.set('page', String(page))
@@ -99,15 +126,19 @@ export function ShopPage() {
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1
   const collectionName = collection ? (collections?.find((entry) => entry.slug === collection)?.name ?? collection) : undefined
+  const currentPage = filters.page ?? 1
+  const hasActiveFilters = Boolean(searchParams.get('category') || searchParams.get('color') || searchParams.get('size') || searchParams.get('availability'))
+  const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1)
 
   return (
     <Section>
       <SectionHeader>
         <SectionTitle>{collectionName ?? t('shop.title')}</SectionTitle>
+        {hasActiveFilters && <ClearFiltersButton type="button" onClick={clearFilters}>{t('shop.clearFilters')}</ClearFiltersButton>}
       </SectionHeader>
       <Filters onSubmit={(event) => event.preventDefault()}>
         <Field>
-          {t('shop.category')}
+          {t('shop.category')}{searchParams.get('category') && <ActiveCount> (1)</ActiveCount>}
           <Select value={searchParams.get('category') ?? ''} onChange={(event) => updateFilter('category', event.target.value)}>
             <option value="">{t('shop.all')}</option>
             {categories?.map((category) => (
@@ -118,7 +149,7 @@ export function ShopPage() {
           </Select>
         </Field>
         <Field>
-          {t('shop.color')}
+          {t('shop.color')}{searchParams.get('color') && <ActiveCount> (1)</ActiveCount>}
           <Select value={searchParams.get('color') ?? ''} onChange={(event) => updateFilter('color', event.target.value)}>
             <option value="">{t('shop.all')}</option>
             {colorOptions.map((color) => (
@@ -129,7 +160,7 @@ export function ShopPage() {
           </Select>
         </Field>
         <Field>
-          {t('shop.size')}
+          {t('shop.size')}{searchParams.get('size') && <ActiveCount> (1)</ActiveCount>}
           <Select value={searchParams.get('size') ?? ''} onChange={(event) => updateFilter('size', event.target.value)}>
             <option value="">{t('shop.all')}</option>
             {sizeOptions.map((size) => (
@@ -140,7 +171,7 @@ export function ShopPage() {
           </Select>
         </Field>
         <Field>
-          {t('shop.availability')}
+          {t('shop.availability')}{searchParams.get('availability') === 'in_stock' && <ActiveCount> (1)</ActiveCount>}
           <Select value={searchParams.get('availability') ?? 'all'} onChange={(event) => updateFilter('availability', event.target.value)}>
             <option value="all">{t('shop.all')}</option>
             <option value="in_stock">{t('shop.inStock')}</option>
@@ -148,19 +179,30 @@ export function ShopPage() {
         </Field>
       </Filters>
       <ProductGrid>
-        {isLoading && <StateMessage kind="loading">{t('catalog.loading')}</StateMessage>}
+        {isLoading && Array.from({ length: SKELETON_CARD_COUNT }, (_, index) => <ProductCardSkeleton key={index} />)}
         {isError && <StateMessage kind="error">{t('catalog.error')}</StateMessage>}
         {!isLoading && !isError && data?.items.length === 0 && <StateMessage kind="empty">{t('shop.empty')}</StateMessage>}
         {data?.items.map((product) => <ProductCard key={product.id} product={product} />)}
       </ProductGrid>
-      {data && data.total > 0 && (
+      {data && data.total > 0 && totalPages > 1 && (
         <Pagination>
-          <PageButton type="button" disabled={filters.page === 1} onClick={() => goToPage((filters.page ?? 1) - 1)}>
-            {t('shop.previous')}
+          <PageButton type="button" aria-label={t('shop.previous')} disabled={currentPage === 1} onClick={() => goToPage(currentPage - 1)}>
+            ‹
           </PageButton>
-          <span>{t('shop.pageOf', { page: filters.page ?? 1, totalPages })}</span>
-          <PageButton type="button" disabled={(filters.page ?? 1) >= totalPages} onClick={() => goToPage((filters.page ?? 1) + 1)}>
-            {t('shop.next')}
+          {pageNumbers.map((page) => (
+            <PageNumberButton
+              key={page}
+              type="button"
+              $active={page === currentPage}
+              aria-label={t('shop.pageNumberLabel', { page })}
+              aria-current={page === currentPage ? 'page' : undefined}
+              onClick={() => goToPage(page)}
+            >
+              {page}
+            </PageNumberButton>
+          ))}
+          <PageButton type="button" aria-label={t('shop.next')} disabled={currentPage >= totalPages} onClick={() => goToPage(currentPage + 1)}>
+            ›
           </PageButton>
         </Pagination>
       )}

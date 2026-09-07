@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom'
 import { Price } from '../components/Price'
 import { QuantityStepper } from '../components/QuantityStepper'
 import { Section, SectionHeader, SectionTitle } from '../components/primitives'
+import { RowSkeleton } from '../components/Skeleton'
 import { StateMessage } from '../components/StateMessage'
 import { selectSessionId } from '../store/cart-slice'
 import { useGetCartQuery, useRemoveCartItemMutation, useUpdateCartItemMutation } from '../store/catalog-api'
 import { useAppSelector } from '../store/hooks'
 import { formatPrice } from '../lib/format-price'
+import { toThumbUrl } from '../lib/image'
 import { useTranslation } from '../lib/use-translation'
 
 const Line = styled.div`
@@ -20,7 +22,24 @@ const Line = styled.div`
 
   @media (max-width: 640px) {
     grid-template-columns: 72px 1fr;
-    grid-template-rows: auto auto;
+  }
+`
+/**
+ * `display: contents` keeps the stepper, price and remove button as direct grid items of `Line` on
+ * desktop, matching its `auto auto auto` columns. On mobile it becomes a real box that spans both
+ * columns, so those three controls get their own full-width row instead of being squeezed into the
+ * 72px thumbnail column.
+ */
+const Controls = styled.div`
+  display: contents;
+
+  @media (max-width: 640px) {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    grid-column: 1 / -1;
+    justify-content: space-between;
   }
 `
 const Thumb = styled.div`
@@ -74,6 +93,8 @@ const Subtotal = styled.p`
   font-size: 1.1rem;
   margin: 0;
 `
+const CART_SKELETON_ROWS = 3
+
 const CheckoutAction = styled(Link)`
   background: var(--color-ink);
   color: var(--color-background);
@@ -98,26 +119,28 @@ export function CartPage() {
       <SectionHeader>
         <SectionTitle>{t('cart.title')}</SectionTitle>
       </SectionHeader>
-      {isLoading && <StateMessage kind="loading">{t('cart.loading')}</StateMessage>}
+      {isLoading && Array.from({ length: CART_SKELETON_ROWS }, (_, index) => <RowSkeleton key={index} />)}
       {isError && <StateMessage kind="error">{t('cart.error')}</StateMessage>}
       {(updateState.isError || removeState.isError) && <StateMessage kind="error">{t('cart.updateError')}</StateMessage>}
       {!isLoading && !isError && cart?.items.length === 0 && <StateMessage kind="empty">{t('cart.empty')}</StateMessage>}
       {cart?.items.map((item) => (
         <Line key={item.variantId}>
-          <Thumb>{item.imageUrl && <img src={item.imageUrl} alt={item.productName} />}</Thumb>
+          <Thumb>{item.imageUrl && <img src={toThumbUrl(item.imageUrl)} alt={item.productName} loading="lazy" decoding="async" />}</Thumb>
           <LineInfo>
             <LineName>{item.productName}</LineName>
             <LineVariant>{[item.color, item.size].filter(Boolean).join(' / ')}</LineVariant>
           </LineInfo>
-          <QuantityStepper
-            value={item.quantity}
-            max={item.availableUnits}
-            onChange={(quantity) => updateCartItem({ sessionId, variantId: item.variantId, quantity, lang: language })}
-          />
-          <Price minCents={item.unitPriceCents * item.quantity} maxCents={item.unitPriceCents * item.quantity} currency={cart.currency} />
-          <RemoveButton type="button" onClick={() => removeCartItem({ sessionId, variantId: item.variantId, lang: language })}>
-            {t('cart.remove')}
-          </RemoveButton>
+          <Controls>
+            <QuantityStepper
+              value={item.quantity}
+              max={item.availableUnits}
+              onChange={(quantity) => updateCartItem({ sessionId, variantId: item.variantId, quantity, lang: language })}
+            />
+            <Price minCents={item.unitPriceCents * item.quantity} maxCents={item.unitPriceCents * item.quantity} currency={cart.currency} />
+            <RemoveButton type="button" onClick={() => removeCartItem({ sessionId, variantId: item.variantId, lang: language })}>
+              {t('cart.remove')}
+            </RemoveButton>
+          </Controls>
         </Line>
       ))}
       {cart && cart.items.length > 0 && (

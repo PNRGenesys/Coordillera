@@ -1,13 +1,16 @@
 import type { FastifyInstance } from 'fastify'
 import { eq } from 'drizzle-orm'
 import { hashPassword, verifyPassword } from '../auth/password.js'
-import { closeSession, findSessionCustomer, openSession, type AccountProfile } from '../auth/session.js'
+import { closeSession, findSessionCustomer, openSession, requireSessionCustomer, type AccountProfile } from '../auth/session.js'
 import { db } from '../db/client.js'
 import { customers } from '../db/schema.js'
 import { DomainError } from '../errors.js'
-import { loginSchema, registerSchema } from '../schemas.js'
+import { loginSchema, profileUpdateSchema, registerSchema } from '../schemas.js'
 
-const profileColumns = { id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName, phone: customers.phone, role: customers.role }
+const profileColumns = {
+  id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName,
+  phone: customers.phone, role: customers.role, avatar: customers.avatar, shippingAddress: customers.shippingAddress,
+}
 
 export function registerAuthRoutes(app: FastifyInstance): void {
   app.post('/api/auth/register', async (request, reply) => {
@@ -22,6 +25,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
       ? await db.update(customers).set({ passwordHash, firstName: input.firstName, lastName: input.lastName, phone: input.phone, updatedAt: new Date() })
         .where(eq(customers.id, existing.id)).returning(profileColumns)
       : await db.insert(customers).values({ email: input.email, passwordHash, firstName: input.firstName, lastName: input.lastName, phone: input.phone }).returning(profileColumns)
+    if (!account) throw new Error(`Register upsert for ${input.email} returned no row`)
 
     await openSession(account.id, reply)
     return reply.code(201).send(toProfile(account))
@@ -31,7 +35,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
     const input = loginSchema.parse(request.body)
     const [account] = await db.select({ ...profileColumns, passwordHash: customers.passwordHash }).from(customers).where(eq(customers.email, input.email))
     // The same error covers unknown emails and wrong passwords, so the response does not reveal which accounts exist.
-    if (!account?.passwordHash || !(await verifyPassword(input.password, account.passwordHash))) {
+    if (!account || !account.passwordHash || !(await verifyPassword(input.password, account.passwordHash))) {
       throw new DomainError('invalid_credentials', 'Email or password is incorrect')
     }
 
@@ -49,8 +53,27 @@ export function registerAuthRoutes(app: FastifyInstance): void {
     const account = await findSessionCustomer(request)
     return { account: account ? toProfile(account) : undefined }
   })
+
+  /** Every field is optional: the account page sends what it has, and `null` clears the picture or the address. */
+  app.patch('/api/auth/me', async (request) => {
+    const account = await requireSessionCustomer(request)
+    const input = profileUpdateSchema.parse(request.body)
+
+    if (input.email && input.email !== account.email) {
+      const [taken] = await db.select({ id: customers.id }).from(customers).where(eq(customers.email, input.email))
+      if (taken) throw new DomainError('email_taken', 'That email already has an account', { email: input.email })
+    }
+
+    const [updated] = await db.update(customers).set({ ...input, updatedAt: new Date() })
+      .where(eq(customers.id, account.id)).returning(profileColumns)
+    if (!updated) throw new Error(`Profile update for ${account.id} returned no row`)
+    return toProfile(updated)
+  })
 }
 
 function toProfile(account: AccountProfile): AccountProfile {
-  return { id: account.id, email: account.email, firstName: account.firstName, lastName: account.lastName, phone: account.phone, role: account.role }
+  return {
+    id: account.id, email: account.email, firstName: account.firstName, lastName: account.lastName,
+    phone: account.phone, role: account.role, avatar: account.avatar, shippingAddress: account.shippingAddress,
+  }
 }

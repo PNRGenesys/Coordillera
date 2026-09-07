@@ -12,6 +12,10 @@ const Caption = styled.figcaption`
   margin-bottom: 0.6rem;
   text-transform: uppercase;
 `
+/** Scrolls horizontally instead of breaking the page width if a guide ever carries more columns than a narrow phone can fit. */
+const TableScroll = styled.div`
+  overflow-x: auto;
+`
 const Table = styled.table`
   border-collapse: collapse;
   width: 100%;
@@ -21,6 +25,7 @@ const Table = styled.table`
     border: 1px solid var(--color-border);
     padding: 0.5rem 0.75rem;
     text-align: left;
+    white-space: nowrap;
   }
 
   th {
@@ -40,24 +45,26 @@ export function SizeGuideTable({ name, unit, columns, rows }: SizeGuideTableProp
   return (
     <Wrapper>
       <Caption>{t('product.sizeGuideCaption', { name, unit })}</Caption>
-      <Table>
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <th key={column}>{column}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={index}>
+      <TableScroll>
+        <Table>
+          <thead>
+            <tr>
               {columns.map((column) => (
-                <td key={column}>{row[column]}</td>
+                <th key={column}>{column}</th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </Table>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={index}>
+                {columns.map((column) => (
+                  <td key={column}>{row[column]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </TableScroll>
     </Wrapper>
   )
 }

@@ -28,16 +28,19 @@ beforeAll(async () => {
   const [category] = await db.insert(categories).values({
     name: 'Test Category', slug: TEST_CATEGORY_SLUG, translations: { es: { name: 'Categoria de prueba' } },
   }).returning({ id: categories.id })
+  if (!category) throw new Error('Test category insert returned no row')
 
   const [product] = await db.insert(products).values({
     name: 'Catalog Test Product', slug: TEST_PRODUCT_SLUG, description: 'English description', status: 'active', categoryId: category.id,
     translations: { es: { name: 'Producto de prueba', description: 'Descripcion en espanol' } },
   }).returning({ id: products.id })
+  if (!product) throw new Error('Test product insert returned no row')
 
   const [variant] = await db.insert(productVariants).values({
     productId: product.id, sku: TEST_SKU, name: 'Catalog Test Variant', color: 'Cream', size: 'One size', priceCents: 1_000_00,
     translations: { es: { name: 'Variante de prueba', color: 'Crema', size: 'Talla unica' } },
   }).returning({ id: productVariants.id })
+  if (!variant) throw new Error('Test variant insert returned no row')
 
   await db.insert(inventoryItems).values({ variantId: variant.id, onHand: 5 })
 })

@@ -44,9 +44,14 @@ export const inventoryItems = pgTable('inventory_items', {
 export const inventoryMovements = pgTable('inventory_movements', {
   id: uuid('id').defaultRandom().primaryKey(), inventoryItemId: uuid('inventory_item_id').references(() => inventoryItems.id).notNull(), type: inventoryMovementType('type').notNull(), quantity: integer('quantity').notNull(), reference: varchar('reference', { length: 120 }), note: text('note'), createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
-/** `passwordHash` stays empty for the customers created by a guest checkout: only registered accounts can sign in. */
+/**
+ * `passwordHash` stays empty for the customers created by a guest checkout: only registered accounts can sign in.
+ * `avatar` holds a small square picture as a data URL. It lives in the row because the project has no file
+ * storage yet, and the API caps its size so the column cannot grow without a limit.
+ * `shippingAddress` is the address the customer keeps on file; each order still copies its own.
+ */
 export const customers = pgTable('customers', {
-  id: uuid('id').defaultRandom().primaryKey(), email: varchar('email', { length: 320 }).notNull().unique(), firstName: varchar('first_name', { length: 100 }), lastName: varchar('last_name', { length: 100 }), phone: varchar('phone', { length: 40 }), passwordHash: varchar('password_hash', { length: 200 }), role: customerRole('role').default('customer').notNull(), ...timestamps,
+  id: uuid('id').defaultRandom().primaryKey(), email: varchar('email', { length: 320 }).notNull().unique(), firstName: varchar('first_name', { length: 100 }), lastName: varchar('last_name', { length: 100 }), phone: varchar('phone', { length: 40 }), passwordHash: varchar('password_hash', { length: 200 }), role: customerRole('role').default('customer').notNull(), avatar: text('avatar'), shippingAddress: jsonb('shipping_address').$type<Record<string, string>>(), ...timestamps,
 })
 /** Only the hash of the session token is stored, so a database dump cannot be used to impersonate a customer. */
 export const customerSessions = pgTable('customer_sessions', {

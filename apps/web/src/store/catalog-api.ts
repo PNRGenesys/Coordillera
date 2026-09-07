@@ -34,6 +34,7 @@ export type CatalogProductSummary = {
   collectionName: string | null
   minPriceCents: number
   maxPriceCents: number
+  compareAtPriceCents: number | null
   colors: CatalogFacet[]
   sizes: CatalogFacet[]
   availableUnits: number
@@ -145,6 +146,19 @@ export type AccountProfile = {
   lastName: string | null
   phone: string | null
   role: CustomerRole
+  /** Square picture kept as a data URL; the store has no file hosting yet. */
+  avatar: string | null
+  shippingAddress: ShippingAddress | null
+}
+
+/** Every field is optional: the account page sends what it has, and a null clears the picture or the address. */
+export type ProfileUpdate = {
+  email?: string
+  firstName?: string
+  lastName?: string
+  phone?: string
+  avatar?: string | null
+  shippingAddress?: ShippingAddress | null
 }
 
 export type RegisterInput = {
@@ -210,6 +224,8 @@ export type AdminOrder = {
 }
 
 export type ProductUpdate = { name?: string; description?: string; composition?: string; status?: ProductStatus; release?: ProductRelease }
+export type ProductDiscount = { id: string; discountPercent: number }
+export type DiscountedVariant = { id: string; priceCents: number; compareAtPriceCents: number | null }
 export type VariantUpdate = { name?: string; color?: string; size?: string; priceCents?: number; compareAtPriceCents?: number }
 export type OrderUpdate = { status?: OrderStatus; carrier?: string; trackingNumber?: string }
 export type InventoryAdjustment = { variantId: string; quantity: number; note: string }
@@ -269,7 +285,7 @@ export const catalogApi = createApi({
       query: (body) => ({ url: 'checkout', method: 'POST', body }),
       invalidatesTags: ['Cart'],
     }),
-    requestRestock: build.mutation<{ status: string }, { variantId: string; email: string }>({
+    requestRestock: build.mutation<{ status: string }, { variantId: string; email?: string }>({
       query: (body) => ({ url: 'restock-requests', method: 'POST', body }),
     }),
     getAccount: build.query<AccountSession, void>({
@@ -282,6 +298,10 @@ export const catalogApi = createApi({
     }),
     login: build.mutation<AccountProfile, LoginInput>({
       query: (body) => ({ url: 'auth/login', method: 'POST', body }),
+      invalidatesTags: ['Account'],
+    }),
+    updateProfile: build.mutation<AccountProfile, ProfileUpdate>({
+      query: (changes) => ({ url: 'auth/me', method: 'PATCH', body: changes }),
       invalidatesTags: ['Account'],
     }),
     logout: build.mutation<void, void>({
@@ -298,6 +318,10 @@ export const catalogApi = createApi({
     }),
     updateAdminVariant: build.mutation<AdminVariant, { id: string; changes: VariantUpdate }>({
       query: ({ id, changes }) => ({ url: `admin/variants/${id}`, method: 'PATCH', body: changes }),
+      invalidatesTags: ['Admin', 'Catalog', 'Cart'],
+    }),
+    applyProductDiscount: build.mutation<DiscountedVariant[], ProductDiscount>({
+      query: ({ id, discountPercent }) => ({ url: `admin/products/${id}/discount`, method: 'POST', body: { discountPercent } }),
       invalidatesTags: ['Admin', 'Catalog', 'Cart'],
     }),
     adjustInventory: build.mutation<{ onHand: number; reserved: number }, InventoryAdjustment>({
@@ -330,9 +354,11 @@ export const {
   useRegisterMutation,
   useLoginMutation,
   useLogoutMutation,
+  useUpdateProfileMutation,
   useGetAdminProductsQuery,
   useUpdateAdminProductMutation,
   useUpdateAdminVariantMutation,
+  useApplyProductDiscountMutation,
   useAdjustInventoryMutation,
   useGetAdminOrdersQuery,
   useUpdateAdminOrderMutation,

@@ -21,7 +21,7 @@ export function sortVariantsBySizeGuide(
   sizeGuideRows: Record<string, string>[] | null,
 ): ProductVariant[] {
   const sizeColumn = sizeGuideColumns?.[0]
-  const sizeOrder = sizeColumn && sizeGuideRows?.length ? sizeGuideRows.map((row) => row[sizeColumn]) : STANDARD_SIZE_ORDER
+  const sizeOrder = sizeColumn && sizeGuideRows?.length ? sizeGuideRows.map((row) => row[sizeColumn] ?? null) : STANDARD_SIZE_ORDER
   const colorOrder = [...new Set(variants.map((variant) => variant.color))]
 
   return [...variants].sort((left, right) => {

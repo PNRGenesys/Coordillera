@@ -2,6 +2,28 @@
 
 Este archivo registra los cambios incluidos en cada commit solicitado. Las entradas se agregan antes de crear el commit.
 
+## Perfil editable del cliente
+
+- `/account` abre con los datos de la cuenta en modo lectura: foto, nombre, correo, telefono y direccion en una linea. El boton "Modificar perfil" lleva a `/account/edit`, que es donde vive el formulario; al guardar vuelve a la ficha, ya actualizada.
+- El cliente edita nombre, apellido, correo, telefono, foto de perfil y direccion de envio, todo con `PATCH /api/auth/me`. Cambiar el correo a uno que ya tiene cuenta responde `409 email_taken`.
+- La direccion queda guardada en `customers.shipping_address` y prellena el checkout; cada pedido sigue copiando la suya, asi que cambiarla despues no altera pedidos ya hechos.
+- La foto se guarda en `customers.avatar` como data URL, porque el proyecto no tiene almacenamiento de archivos todavia. El navegador la recorta en cuadrado y la reduce a 256 px antes de enviarla, y la API limita el texto con `AVATAR_MAX_CHARACTERS`. Aparece en la cabecera junto al nombre.
+- Un cliente con sesion ya no escribe su correo para entrar a la lista de reposicion: se toma el de su cuenta. Un invitado lo sigue escribiendo, y sin ninguno de los dos la API responde `400 email_required`.
+- Pruebas nuevas: 8 de la API (perfil, correo repetido, borrado de foto y direccion, foto invalida, sesion, y la reposicion con y sin sesion) y 3 del frontend (recorte cuadrado de la foto).
+
+## Hero rotativo y estetica alineada al logo
+
+- El hero del inicio deja de mostrar el banner y rota las imagenes de los ultimos productos con un fundido cruzado lento: cinco segundos por imagen y dos de transicion, hechos solo con CSS (una animacion compartida y un `animation-delay` negativo por diapositiva), sin temporizadores en JavaScript. Se respeta `prefers-reduced-motion`, que deja el hero fijo en la primera imagen.
+- Cada imagen ademas se acerca y se desplaza mientras esta en pantalla (de escala 1.04 a 1.09), y llega a su punto maximo justo cuando empieza a desvanecerse. Va en una segunda animacion que comparte duracion y retardo con el fundido, asi que ambas van en fase; la escala siempre supera al desplazamiento, de modo que el panel nunca deja ver un borde.
+- La direccion del desplazamiento (lateral, arriba, abajo o diagonal) sale de un hash del propio archivo, asi que parece aleatoria pero es la misma en cada render y nada salta cuando React vuelve a dibujar el hero.
+- La imagen que entra ya llega con parte del recorrido hecho, en vez de empezar quieta junto a la que sale. Antes se notaba el salto en cada transicion porque una de las dos imagenes estaba sin efecto.
+- La tarjeta de producto pierde el enlace "Ver": desde que la imagen lleva al producto, repetia el mismo destino. Se elimino tambien su texto de las traducciones.
+- El selector de variantes se divide en dos grupos con su etiqueta visible, "Color" y "Talla". Antes cada boton combinaba ambos ("Crema / S"), asi que el nombre del color se repetia en cada talla y no decia nada en las prendas de un solo color. Ahora los botones de talla muestran solo la talla, el grupo de color aparece unicamente cuando hay mas de uno, y cambiar de color conserva la talla elegida si esa combinacion existe.
+- El selector de cantidad del detalle de producto ya no se estira a todo el ancho de la columna. Era `inline-flex`, pero como elemento de un contenedor flexible en columna lo estiraba el `align-items: stretch` por defecto; ahora fija su ancho al contenido. En el carrito conserva su alineacion vertical.
+- Las imagenes llenan el panel con `object-fit: cover`, asi que ya no quedan bandas vacias a los lados.
+- `lib/hero-slides.ts` arma la lista con un largo fijo, repitiendo lo disponible cuando hay menos imagenes que diapositivas, para que los fotogramas clave siempre encuentren contenido. Con pruebas.
+- El banner pasa a ser solo la referencia de marca. De el salen la nueva paleta monocroma (negro #121212 sobre gris claro, grises neutros en lugar del beige y verde anteriores) y los titulos en tipografia de palo seco, en negrita y con el tracking cerrado del logotipo. La marca de la cabecera va en mayusculas, como en el banner.
+
 ## Sin commit - Finales de linea consistentes
 
 - `.gitattributes` pasa de `* text=auto` a `* text=auto eol=lf`: el repositorio guarda LF y ahora tambien se descarga LF en Windows, en vez de convertirse a CRLF. Eso es lo que provocaba el aviso del editor.

@@ -20,6 +20,8 @@ export type AccountProfile = {
   lastName: string | null
   phone: string | null
   role: CustomerRole
+  avatar: string | null
+  shippingAddress: Record<string, string> | null
 }
 
 function hashToken(token: string): string {
@@ -49,10 +51,20 @@ export async function findSessionCustomer(request: FastifyRequest): Promise<Acco
   const token = request.cookies[SESSION_COOKIE]
   if (!token) return undefined
 
-  const [customer] = await db.select({ id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName, phone: customers.phone, role: customers.role })
+  const [customer] = await db.select({
+    id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName,
+    phone: customers.phone, role: customers.role, avatar: customers.avatar, shippingAddress: customers.shippingAddress,
+  })
     .from(customerSessions).innerJoin(customers, eq(customers.id, customerSessions.customerId))
     .where(and(eq(customerSessions.tokenHash, hashToken(token)), gt(customerSessions.expiresAt, new Date())))
   return customer
+}
+
+/** Guard for the routes a customer uses on their own account. */
+export async function requireSessionCustomer(request: FastifyRequest): Promise<AccountProfile> {
+  const account = await findSessionCustomer(request)
+  if (!account) throw new DomainError('unauthenticated', 'Sign in to continue')
+  return account
 }
 
 /** Guard for `/api/admin/*`: the session must exist and belong to an administrator. */

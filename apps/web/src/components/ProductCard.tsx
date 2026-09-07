@@ -1,5 +1,6 @@
 import { styled } from '@linaria/react'
 import { Link } from 'react-router-dom'
+import { toThumbUrl } from '../lib/image'
 import { useTranslation } from '../lib/use-translation'
 import type { CatalogProductSummary } from '../store/catalog-api'
 import { Price } from './Price'
@@ -9,9 +10,10 @@ const LAST_STOCK_THRESHOLD = 3
 const Card = styled.article`
   min-width: 0;
 `
-const Visual = styled.div`
+const Visual = styled(Link)`
   aspect-ratio: 0.82;
   background: var(--color-surface);
+  display: block;
   margin-bottom: 0.9rem;
   overflow: hidden;
   position: relative;
@@ -19,7 +21,19 @@ const Visual = styled.div`
   img {
     height: 100%;
     object-fit: cover;
+    transition: transform 200ms ease;
     width: 100%;
+  }
+
+  &:hover img,
+  &:focus-visible img {
+    transform: scale(1.04);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    img {
+      transition: none;
+    }
   }
 `
 const Placeholder = styled.div`
@@ -54,16 +68,11 @@ const ProductPrice = styled.p`
   font-size: 0.9rem;
   margin: 0 0 0.4rem;
 `
-const ViewLink = styled(Link)`
+const ColorCount = styled.p`
   color: var(--color-accent);
   font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-decoration: underline;
-  text-underline-offset: 0.3rem;
-  text-transform: uppercase;
+  margin: 0 0 0.4rem;
 `
-
 export type ProductCardProps = {
   product: CatalogProductSummary
 }
@@ -85,15 +94,26 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <Card>
-      <Visual>
-        {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <Placeholder>{product.colors[0]?.label ?? 'Cordillera'}</Placeholder>}
+      <Visual to={`/product/${product.slug}`} aria-label={product.name}>
+        {product.imageUrl ? (
+          <img
+            src={product.imageUrl}
+            srcSet={`${toThumbUrl(product.imageUrl)} 480w, ${product.imageUrl} 1200w`}
+            sizes="(max-width: 900px) 45vw, 22vw"
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <Placeholder>{product.colors[0]?.label ?? 'Cordillera'}</Placeholder>
+        )}
         {badge && <Badge>{badge}</Badge>}
       </Visual>
       <Name>{product.name}</Name>
       <ProductPrice>
-        <Price minCents={product.minPriceCents} maxCents={product.maxPriceCents} />
+        <Price minCents={product.minPriceCents} maxCents={product.maxPriceCents} compareAtCents={product.compareAtPriceCents} />
       </ProductPrice>
-      <ViewLink to={`/product/${product.slug}`}>{t('product.view')}</ViewLink>
+      {product.colors.length > 1 && <ColorCount>{t('product.colorsAvailable', { count: product.colors.length })}</ColorCount>}
     </Card>
   )
 }

@@ -1,9 +1,12 @@
 import { styled } from '@linaria/react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import brandBanner from '../assets/Banners/brand-banner.jpg'
+import { HeroSlideshow } from '../components/HeroSlideshow'
 import { ProductCard } from '../components/ProductCard'
 import { Kicker, ProductGrid, Section, SectionHeader, SectionTitle, TextLink } from '../components/primitives'
+import { ProductCardSkeleton } from '../components/Skeleton'
 import { StateMessage } from '../components/StateMessage'
+import { buildHeroSlides } from '../lib/hero-slides'
 import { useTranslation } from '../lib/use-translation'
 import { useGetCategoriesQuery, useGetCollectionsQuery, useGetProductsQuery } from '../store/catalog-api'
 
@@ -29,8 +32,8 @@ const HeroCopy = styled.div`
 const Title = styled.h1`
   font-family: var(--font-display);
   font-size: clamp(3.75rem, 7.2vw, 7.5rem);
-  font-weight: 400;
-  letter-spacing: -0.09em;
+  font-weight: var(--font-display-weight);
+  letter-spacing: var(--font-display-tracking);
   line-height: 0.84;
   margin: 0;
   max-width: 700px;
@@ -51,18 +54,6 @@ const Action = styled(Link)`
   padding: 1rem 1.35rem;
   text-decoration: none;
   text-transform: uppercase;
-`
-/* The banner is a brand lockup, so it is shown whole instead of cropped to fill the panel. */
-const HeroImage = styled.img`
-  background: var(--color-brand-canvas);
-  height: 100%;
-  min-height: 420px;
-  object-fit: contain;
-  width: 100%;
-
-  @media (max-width: 760px) {
-    min-height: 0;
-  }
 `
 const Categories = styled.div`
   background: var(--color-border);
@@ -95,8 +86,8 @@ const CategoryNumber = styled.span`
 const CategoryName = styled.h3`
   font-family: var(--font-display);
   font-size: 2.2rem;
-  font-weight: 400;
-  letter-spacing: -0.06em;
+  font-weight: var(--font-display-weight);
+  letter-spacing: var(--font-display-tracking);
   margin: 3.5rem 0 0;
 `
 
@@ -106,6 +97,8 @@ export function HomePage() {
   const { data: categories } = useGetCategoriesQuery(language)
   const { data: latest, isLoading, isError } = useGetProductsQuery({ lang: language, pageSize: LATEST_PRODUCTS_COUNT })
   const featuredCollection = collections?.find((collection) => collection.featured) ?? collections?.[0]
+  // The hero reuses the products already fetched for the grid below, so the rotation costs no extra request.
+  const heroSlides = useMemo(() => buildHeroSlides(latest?.items ?? []), [latest])
 
   return (
     <>
@@ -116,7 +109,7 @@ export function HomePage() {
           <Lead>{featuredCollection?.tagline ?? t('home.leadFallback')}</Lead>
           <Action to={featuredCollection ? `/shop/${featuredCollection.slug}` : '/shop'}>{t('home.exploreCollection')}</Action>
         </HeroCopy>
-        <HeroImage src={brandBanner} alt="Cordillera" />
+        <HeroSlideshow slides={heroSlides} />
       </Hero>
       <Section>
         <SectionHeader>
@@ -141,7 +134,7 @@ export function HomePage() {
           <TextLink to="/shop">{t('home.filterCollection')}</TextLink>
         </SectionHeader>
         <ProductGrid>
-          {isLoading && <StateMessage kind="loading">{t('catalog.loading')}</StateMessage>}
+          {isLoading && Array.from({ length: LATEST_PRODUCTS_COUNT }, (_, index) => <ProductCardSkeleton key={index} />)}
           {isError && <StateMessage kind="error">{t('catalog.error')}</StateMessage>}
           {!isLoading && !isError && latest?.items.length === 0 && <StateMessage kind="empty">{t('home.empty')}</StateMessage>}
           {latest?.items.map((product) => <ProductCard key={product.id} product={product} />)}

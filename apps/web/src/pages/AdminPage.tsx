@@ -2,6 +2,7 @@ import { styled } from '@linaria/react'
 import { AdminOrderCard } from '../components/AdminOrderCard'
 import { AdminProductCard } from '../components/AdminProductCard'
 import { Kicker, Section, SectionHeader, SectionTitle } from '../components/primitives'
+import { RowSkeleton } from '../components/Skeleton'
 import { StateMessage } from '../components/StateMessage'
 import { useAccount } from '../lib/use-account'
 import { useTranslation } from '../lib/use-translation'
@@ -11,6 +12,8 @@ const CardList = styled.div`
   display: grid;
   gap: 1.5rem;
 `
+
+const ADMIN_SKELETON_ROWS = 3
 
 export function AdminPage() {
   const { t } = useTranslation()
@@ -32,7 +35,7 @@ export function AdminPage() {
           </div>
         </SectionHeader>
         <CardList>
-          {isLoadingProducts && <StateMessage kind="loading">{t('admin.loading')}</StateMessage>}
+          {isLoadingProducts && Array.from({ length: ADMIN_SKELETON_ROWS }, (_, index) => <RowSkeleton key={index} height="3.5rem" />)}
           {products?.length === 0 && <StateMessage kind="empty">{t('admin.noProducts')}</StateMessage>}
           {products?.map((product) => <AdminProductCard key={product.id} product={product} />)}
         </CardList>
@@ -42,7 +45,7 @@ export function AdminPage() {
           <SectionTitle>{t('admin.ordersTitle')}</SectionTitle>
         </SectionHeader>
         <CardList>
-          {isLoadingOrders && <StateMessage kind="loading">{t('admin.loading')}</StateMessage>}
+          {isLoadingOrders && Array.from({ length: ADMIN_SKELETON_ROWS }, (_, index) => <RowSkeleton key={index} height="6rem" />)}
           {orders?.length === 0 && <StateMessage kind="empty">{t('admin.noOrders')}</StateMessage>}
           {orders?.map((order) => <AdminOrderCard key={order.id} order={order} />)}
         </CardList>

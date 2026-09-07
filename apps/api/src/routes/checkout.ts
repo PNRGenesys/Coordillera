@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { and, eq, sql } from 'drizzle-orm'
+import { findSessionCustomer } from '../auth/session.js'
 import { config } from '../config.js'
 import { db } from '../db/client.js'
 import { nextOrderNumber } from '../db/queries.js'
@@ -19,11 +20,13 @@ export function registerCheckoutRoutes(app: FastifyInstance): void {
 
       const [customer] = await tx.insert(customers).values({ email: input.email, firstName: input.firstName, lastName: input.lastName, phone: input.phone })
         .onConflictDoUpdate({ target: customers.email, set: { firstName: input.firstName, lastName: input.lastName, phone: input.phone, updatedAt: new Date() } }).returning()
+      if (!customer) throw new Error(`Upsert of customer ${input.email} returned no row`)
 
       const subtotalCents = lines.reduce((total, line) => total + line.priceCents * line.quantity, 0)
       const [created] = await tx.insert(orders).values({
         number: nextOrderNumber, customerId: customer.id, currency: config.currency, subtotalCents, totalCents: subtotalCents, shippingAddress: input.shippingAddress,
       }).returning()
+      if (!created) throw new Error('Order insert returned no row')
 
       const expiresAt = new Date(created.createdAt.getTime() + config.reservationTtlMs)
       for (const line of lines) {
@@ -42,9 +45,14 @@ export function registerCheckoutRoutes(app: FastifyInstance): void {
 
   app.post('/api/restock-requests', async (request, reply) => {
     const input = restockRequestSchema.parse(request.body)
+    // A signed in customer is already identified by their email, so the form does not ask for it again.
+    const account = await findSessionCustomer(request)
+    const email = input.email ?? account?.email
+    if (!email) throw new DomainError('email_required', 'Sign in or leave an email to join the restock list')
+
     const [variant] = await db.select({ id: productVariants.id }).from(productVariants).where(eq(productVariants.id, input.variantId))
     if (!variant) throw new DomainError('variant_not_found', 'Variant not found', { variantId: input.variantId })
-    await db.insert(restockRequests).values({ variantId: input.variantId, email: input.email }).onConflictDoNothing()
+    await db.insert(restockRequests).values({ variantId: input.variantId, email }).onConflictDoNothing()
     return reply.code(202).send({ status: 'registered' })
   })
 }

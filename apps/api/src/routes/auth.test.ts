@@ -9,6 +9,7 @@ import { customers } from '../db/schema.js'
 
 const NEW_EMAIL = 'auth-test-new@cordillera.test'
 const GUEST_EMAIL = 'auth-test-guest@cordillera.test'
+const RENAMED_EMAIL = 'auth-test-renamed@cordillera.test'
 const PASSWORD = 'cordillera-test-password'
 
 function registerPayload(email: string) {
@@ -17,7 +18,7 @@ function registerPayload(email: string) {
 
 /** `app.inject` does not keep a cookie jar, so the session cookie is carried over by hand. */
 function sessionCookie(setCookie: string): string {
-  return setCookie.split(';')[0]
+  return setCookie.split(';')[0] ?? setCookie
 }
 
 let app: FastifyInstance
@@ -25,12 +26,12 @@ let cookie: string
 
 beforeAll(async () => {
   app = await buildApp()
-  await db.delete(customers).where(inArray(customers.email, [NEW_EMAIL, GUEST_EMAIL]))
+  await db.delete(customers).where(inArray(customers.email, [NEW_EMAIL, GUEST_EMAIL, RENAMED_EMAIL]))
   await db.insert(customers).values({ email: GUEST_EMAIL, firstName: 'Guest', lastName: 'Buyer' })
 })
 
 afterAll(async () => {
-  await db.delete(customers).where(inArray(customers.email, [NEW_EMAIL, GUEST_EMAIL]))
+  await db.delete(customers).where(inArray(customers.email, [NEW_EMAIL, GUEST_EMAIL, RENAMED_EMAIL]))
   await app.close()
 })
 
@@ -50,7 +51,7 @@ describe('POST /api/auth/register', () => {
 
   it('stores the password hashed instead of in plain text', async () => {
     const [account] = await db.select({ passwordHash: customers.passwordHash }).from(customers).where(eq(customers.email, NEW_EMAIL))
-    expect(account.passwordHash).toMatch(/^scrypt\$[0-9a-f]+\$[0-9a-f]+$/)
+    expect(account?.passwordHash).toMatch(/^scrypt\$[0-9a-f]+\$[0-9a-f]+$/)
   })
 
   it('rejects an email that already has an account', async () => {
@@ -89,6 +90,53 @@ describe('POST /api/auth/login', () => {
     expect(unknownEmail.statusCode).toBe(401)
     expect(wrongPassword.json().code).toBe('invalid_credentials')
     expect(unknownEmail.json().code).toBe('invalid_credentials')
+  })
+})
+
+describe('PATCH /api/auth/me', () => {
+  const address = { line1: 'Cra 1 #2-3', city: 'Bogota', region: 'Cundinamarca', postalCode: '110111', country: 'CO' }
+  const picture = 'data:image/png;base64,iVBORw0KGgo='
+
+  it('saves the address, the picture and the rest of the profile', async () => {
+    const response = await app.inject({
+      method: 'PATCH', url: '/api/auth/me', headers: { cookie },
+      payload: { firstName: 'Ana Maria', phone: '3009998877', avatar: picture, shippingAddress: address },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({ firstName: 'Ana Maria', phone: '3009998877', avatar: picture, shippingAddress: address })
+  })
+
+  it('changes the email and keeps the session working', async () => {
+    const changed = await app.inject({ method: 'PATCH', url: '/api/auth/me', headers: { cookie }, payload: { email: RENAMED_EMAIL } })
+    expect(changed.json().email).toBe(RENAMED_EMAIL)
+
+    const profile = await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie } })
+    expect(profile.json().account.email).toBe(RENAMED_EMAIL)
+
+    await app.inject({ method: 'PATCH', url: '/api/auth/me', headers: { cookie }, payload: { email: NEW_EMAIL } })
+  })
+
+  it('refuses an email that belongs to another account', async () => {
+    const response = await app.inject({ method: 'PATCH', url: '/api/auth/me', headers: { cookie }, payload: { email: GUEST_EMAIL } })
+    expect(response.statusCode).toBe(409)
+    expect(response.json().code).toBe('email_taken')
+  })
+
+  it('clears the picture and the address with null', async () => {
+    const response = await app.inject({ method: 'PATCH', url: '/api/auth/me', headers: { cookie }, payload: { avatar: null, shippingAddress: null } })
+    expect(response.json()).toMatchObject({ avatar: null, shippingAddress: null })
+  })
+
+  it('rejects a picture that is not an image data URL', async () => {
+    const response = await app.inject({ method: 'PATCH', url: '/api/auth/me', headers: { cookie }, payload: { avatar: 'https://example.test/photo.png' } })
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('rejects a request without a session', async () => {
+    const response = await app.inject({ method: 'PATCH', url: '/api/auth/me', payload: { firstName: 'Nadie' } })
+    expect(response.statusCode).toBe(401)
+    expect(response.json().code).toBe('unauthenticated')
   })
 })
 

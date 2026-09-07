@@ -10,6 +10,8 @@ El inicio de sesion y el rol de administrador ya funcionan, pero queda por hacer
 - Limitacion de intentos en `POST /api/auth/login`.
 - Historial de pedidos del propio cliente: `/api/admin/orders` los lista para el administrador, pero el comprador no puede ver los suyos.
 - El checkout de invitado sigue sobrescribiendo nombre y telefono de un cliente registrado si usa su correo.
+- Cambiar el correo de la cuenta solo exige la sesion, no la contrasena actual. Conviene pedirla junto con la verificacion de correo.
+- La foto de perfil vive en la base como data URL. Cuando exista almacenamiento de archivos hay que moverla y dejar solo la URL.
 - Las sesiones vencidas se ignoran al leerlas, pero nadie las borra; conviene sumarlas al job `inventory:release-expired`.
 
 ## 2. Panel administrativo

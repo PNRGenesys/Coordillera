@@ -1,6 +1,6 @@
 import type { SerializedError } from '@reduxjs/toolkit'
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query'
-import type { AccountProfile } from '../store/catalog-api'
+import type { AccountProfile, ShippingAddress } from '../store/catalog-api'
 import type { TranslationKey } from './translations'
 
 /** Mirrors `config.passwordMinLength` in the API, which is the side that actually rejects short passwords. */
@@ -20,4 +20,18 @@ export function accountErrorKey(error: FetchBaseQueryError | SerializedError | u
 
 export function accountDisplayName(account: AccountProfile): string {
   return account.firstName ?? account.email
+}
+
+/** Full name for the profile summary; falls back to the email when the account has no name yet. */
+export function accountFullName(account: AccountProfile): string {
+  const full = [account.firstName, account.lastName].filter(Boolean).join(' ')
+  return full || account.email
+}
+
+/** One line address for reading, keeping the parts the customer actually filled. */
+export function formatAddress(address: ShippingAddress): string {
+  return [address.line1, address.line2, address.city, address.region, address.postalCode, address.country]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(', ')
 }

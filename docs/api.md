@@ -11,6 +11,7 @@ Base local: `http://localhost:3000`. Todas las solicitudes y respuestas usan JSO
 | POST | `/api/auth/login` | Inicia sesión con correo y contraseña. |
 | POST | `/api/auth/logout` | Cierra la sesión activa. |
 | GET | `/api/auth/me` | Devuelve la cuenta de la sesión, o vacío si es un invitado. |
+| PATCH | `/api/auth/me` | Actualiza el perfil: nombre, correo, teléfono, foto y dirección de envío. |
 | GET | `/api/collections` | Lista colecciones (para navegación editorial e inicio). |
 | GET | `/api/categories` | Lista categorías con su guía de tallas asociada. |
 | GET | `/api/products` | Catálogo paginado con filtros de colección, categoría, color, talla y disponibilidad. |
@@ -31,9 +32,12 @@ POST /api/auth/register  { "email": "...", "password": "...", "firstName": "..."
 POST /api/auth/login     { "email": "...", "password": "..." }                                                        -> 200 AccountProfile
 POST /api/auth/logout                                                                                                 -> 204
 GET  /api/auth/me                                                                                                     -> 200 { "account": AccountProfile | ausente }
+PATCH /api/auth/me       { "email"?, "firstName"?, "lastName"?, "phone"?, "avatar"?, "shippingAddress"? }              -> 200 AccountProfile
 ```
 
-`AccountProfile = { id, email, firstName, lastName, phone, role }`, con `role` igual a `customer` o `admin`. La contraseña nunca sale en una respuesta.
+`AccountProfile = { id, email, firstName, lastName, phone, role, avatar, shippingAddress }`, con `role` igual a `customer` o `admin`. La contraseña nunca sale en una respuesta.
+
+En `PATCH` todos los campos son opcionales y solo se cambia lo que llega. `avatar` es una imagen PNG, JPEG o WebP en forma de data URL, limitada por `AVATAR_MAX_CHARACTERS`; `shippingAddress` usa la misma forma que el checkout. Enviar `null` en cualquiera de los dos los borra. Cambiar el correo a uno que ya tiene cuenta responde `409 email_taken`.
 
 Registrar un correo que ya usó un invitado en el checkout reclama ese cliente en vez de duplicarlo. Si el correo ya tiene contraseña, responde `409 email_taken`. Un correo desconocido y una contraseña incorrecta devuelven el mismo `401 invalid_credentials`, para no revelar qué cuentas existen.
 
@@ -144,9 +148,11 @@ Respuesta `201`:
 POST /api/restock-requests   { "variantId": "uuid", "email": "cliente@ejemplo.com" }   -> 202 { "status": "registered" }
 ```
 
+Con sesión iniciada el correo sobra: se toma el de la cuenta. Sin sesión y sin correo responde `400 email_required`.
+
 ## Errores
 
-Toda respuesta de error tiene la forma `{ code, message, details }`. Códigos actuales: `cart_not_found`, `cart_empty`, `cart_item_not_found`, `product_not_found`, `variant_not_found`, `collection_not_found`, `out_of_stock`, `invalid_adjustment`, `email_taken`, `invalid_credentials`, `unauthenticated`, `forbidden`, `order_not_found`, `invalid_status_change`, `invalid_request` (payload inválido según Zod), `internal_error`.
+Toda respuesta de error tiene la forma `{ code, message, details }`. Códigos actuales: `cart_not_found`, `cart_empty`, `cart_item_not_found`, `product_not_found`, `variant_not_found`, `collection_not_found`, `out_of_stock`, `invalid_adjustment`, `email_taken`, `invalid_credentials`, `unauthenticated`, `forbidden`, `order_not_found`, `invalid_status_change`, `email_required`, `invalid_request` (payload inválido según Zod), `internal_error`.
 
 ## Administracion
 

@@ -83,6 +83,7 @@ export function registerCartRoutes(app: FastifyInstance): void {
     const input = cartItemSchema.parse(request.body)
     const [cart] = await db.insert(carts).values({ sessionId: input.sessionId, currency: config.currency })
       .onConflictDoUpdate({ target: carts.sessionId, set: { updatedAt: new Date() } }).returning()
+    if (!cart) throw new Error(`Upsert of cart ${input.sessionId} returned no row`)
     const [existing] = await db.select({ quantity: cartItems.quantity }).from(cartItems).where(and(eq(cartItems.cartId, cart.id), eq(cartItems.variantId, input.variantId)))
     const nextQuantity = Math.min((existing?.quantity ?? 0) + input.quantity, config.cartMaxQuantityPerItem)
     await assertVariantHasStock(input.variantId, nextQuantity)

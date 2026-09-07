@@ -25,19 +25,22 @@ export const cartItemSchema = sessionSchema.extend({
 export const cartItemUpdateSchema = cartItemSchema.extend({ quantity: z.number().int().min(0).max(config.cartMaxQuantityPerItem) })
 export const cartItemRemovalSchema = sessionSchema.extend({ variantId: z.string().uuid() })
 
+/** Shared by the checkout and by the address a customer keeps on file. */
+export const shippingAddressSchema = z.object({
+  line1: z.string().min(3).max(180),
+  line2: z.string().max(180).optional(),
+  city: z.string().min(2).max(120),
+  region: z.string().min(2).max(120),
+  postalCode: z.string().min(2).max(20),
+  country: z.string().length(2),
+})
+
 export const checkoutSchema = sessionSchema.extend({
   email: z.string().email(),
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
   phone: z.string().min(7).max(40),
-  shippingAddress: z.object({
-    line1: z.string().min(3).max(180),
-    line2: z.string().max(180).optional(),
-    city: z.string().min(2).max(120),
-    region: z.string().min(2).max(120),
-    postalCode: z.string().min(2).max(20),
-    country: z.string().length(2),
-  }),
+  shippingAddress: shippingAddressSchema,
 })
 
 export const registerSchema = z.object({
@@ -49,7 +52,23 @@ export const registerSchema = z.object({
 })
 export const loginSchema = z.object({ email: z.string().email().max(320), password: z.string().min(1).max(200) })
 
-export const restockRequestSchema = z.object({ variantId: z.string().uuid(), email: z.string().email() })
+/** The picture travels as a data URL, so the limit is on the encoded text rather than on the file. */
+const avatarSchema = z.string()
+  .max(config.avatarMaxCharacters)
+  .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/, { message: 'The picture must be a PNG, JPEG or WebP data URL' })
+
+/** Every field is optional so the account page can save only what changed; `null` clears the picture. */
+export const profileUpdateSchema = z.object({
+  email: z.string().email().max(320).optional(),
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  phone: z.string().min(7).max(40).optional(),
+  avatar: avatarSchema.nullable().optional(),
+  shippingAddress: shippingAddressSchema.nullable().optional(),
+})
+
+/** A signed in customer joins the restock list with the address of their account, so the email is optional. */
+export const restockRequestSchema = z.object({ variantId: z.string().uuid(), email: z.string().email().optional() })
 
 export const ORDER_STATUSES = ['pending_payment', 'paid', 'processing', 'fulfilled', 'shipped', 'delivered', 'cancelled', 'refunded'] as const
 
@@ -77,6 +96,13 @@ export const variantUpdateSchema = requireAtLeastOneField(z.object({
   priceCents: z.number().int().positive().optional(),
   compareAtPriceCents: z.number().int().positive().optional(),
 }))
+
+/** Business rule from the store owner: a product discount never exceeds 30%. */
+export const MAX_DISCOUNT_PERCENT = 30
+
+export const productDiscountSchema = z.object({
+  discountPercent: z.number().int().min(0).max(MAX_DISCOUNT_PERCENT),
+})
 
 export const orderUpdateSchema = requireAtLeastOneField(z.object({
   status: z.enum(ORDER_STATUSES).optional(),

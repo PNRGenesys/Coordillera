@@ -16,6 +16,7 @@ export type DomainErrorCode =
   | 'forbidden'
   | 'order_not_found'
   | 'invalid_status_change'
+  | 'email_required'
 
 const statusByCode: Record<DomainErrorCode, number> = {
   cart_not_found: 404,
@@ -32,6 +33,7 @@ const statusByCode: Record<DomainErrorCode, number> = {
   forbidden: 403,
   order_not_found: 404,
   invalid_status_change: 409,
+  email_required: 400,
 }
 
 export class DomainError extends Error {

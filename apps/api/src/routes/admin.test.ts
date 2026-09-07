@@ -20,7 +20,7 @@ const testEmails = [ADMIN_EMAIL, SHOPPER_EMAIL]
 
 /** `app.inject` does not keep a cookie jar, so the session cookie is carried over by hand. */
 function sessionCookie(setCookie: string): string {
-  return setCookie.split(';')[0]
+  return setCookie.split(';')[0] ?? setCookie
 }
 
 function required<Entry>(entry: Entry | undefined, what: string): Entry {
@@ -45,9 +45,12 @@ beforeAll(async () => {
   app = await buildApp()
   await db.delete(customers).where(inArray(customers.email, testEmails))
 
-  const [product] = await db.insert(products).values({ name: 'Admin Test Product', slug: TEST_PRODUCT_SLUG, status: 'draft' }).returning({ id: products.id })
-  const [variant] = await db.insert(productVariants).values({ productId: product.id, sku: TEST_SKU, name: 'Admin Test Variant', color: 'Test', size: 'M', priceCents: 1_000_00 }).returning({ id: productVariants.id })
-  const [stock] = await db.insert(inventoryItems).values({ variantId: variant.id, onHand: INITIAL_STOCK }).returning({ id: inventoryItems.id })
+  const [insertedProduct] = await db.insert(products).values({ name: 'Admin Test Product', slug: TEST_PRODUCT_SLUG, status: 'draft' }).returning({ id: products.id })
+  const product = required(insertedProduct, 'inserted test product')
+  const [insertedVariant] = await db.insert(productVariants).values({ productId: product.id, sku: TEST_SKU, name: 'Admin Test Variant', color: 'Test', size: 'M', priceCents: 1_000_00 }).returning({ id: productVariants.id })
+  const variant = required(insertedVariant, 'inserted test variant')
+  const [insertedStock] = await db.insert(inventoryItems).values({ variantId: variant.id, onHand: INITIAL_STOCK }).returning({ id: inventoryItems.id })
+  const stock = required(insertedStock, 'inserted test inventory item')
   productId = product.id
   variantId = variant.id
   inventoryItemId = stock.id
@@ -68,8 +71,8 @@ beforeAll(async () => {
       shippingAddress: { line1: 'Cra 1 #2-3', city: 'Bogota', region: 'Cundinamarca', postalCode: '110111', country: 'CO' },
     },
   })
-  const [created] = await db.select({ id: orders.id }).from(orders).where(eq(orders.number, checkout.json().number))
-  orderId = created.id
+  const [foundOrder] = await db.select({ id: orders.id }).from(orders).where(eq(orders.number, checkout.json().number))
+  orderId = required(foundOrder, 'checkout test order').id
 })
 
 afterAll(async () => {
@@ -121,6 +124,20 @@ describe('admin catalog', () => {
     const response = await app.inject({ method: 'PATCH', url: `/api/admin/variants/${variantId}`, headers: { cookie: adminCookie }, payload: { priceCents: 2_000_00 } })
     expect(response.statusCode).toBe(200)
     expect(response.json().priceCents).toBe(2_000_00)
+  })
+
+  it('applies a discount to every variant, rejects more than 30%, and 0% restores the regular price', async () => {
+    const applied = await app.inject({ method: 'POST', url: `/api/admin/products/${productId}/discount`, headers: { cookie: adminCookie }, payload: { discountPercent: 20 } })
+    expect(applied.statusCode).toBe(200)
+    const [discounted] = applied.json<{ priceCents: number; compareAtPriceCents: number | null }[]>()
+    expect(discounted).toMatchObject({ priceCents: 1_600_00, compareAtPriceCents: 2_000_00 })
+
+    const rejected = await app.inject({ method: 'POST', url: `/api/admin/products/${productId}/discount`, headers: { cookie: adminCookie }, payload: { discountPercent: 31 } })
+    expect(rejected.statusCode).toBe(400)
+
+    const cleared = await app.inject({ method: 'POST', url: `/api/admin/products/${productId}/discount`, headers: { cookie: adminCookie }, payload: { discountPercent: 0 } })
+    const [restored] = cleared.json<{ priceCents: number; compareAtPriceCents: number | null }[]>()
+    expect(restored).toMatchObject({ priceCents: 2_000_00, compareAtPriceCents: null })
   })
 
   it('rejects an update with no fields', async () => {
