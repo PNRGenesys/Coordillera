@@ -6,7 +6,7 @@ import { db } from '../db/client.js'
 import { availableUnits } from '../db/queries.js'
 import { categories, collections, customers, inventoryItems, inventoryMovements, inventoryReservations, orderItems, orders, productImages, productVariants, products } from '../db/schema.js'
 import { DomainError } from '../errors.js'
-import { idParamSchema, inventoryAdjustmentSchema, orderUpdateSchema, productCreateSchema, productDiscountSchema, productUpdateSchema, variantUpdateSchema } from '../schemas.js'
+import { customerRoleUpdateSchema, idParamSchema, inventoryAdjustmentSchema, orderUpdateSchema, productCreateSchema, productDiscountSchema, productUpdateSchema, variantUpdateSchema } from '../schemas.js'
 
 type OrderStatus = (typeof orders.$inferSelect)['status']
 
@@ -123,8 +123,25 @@ async function settleReservations(orderId: string, status: OrderStatus): Promise
   })
 }
 
+async function findAdminCustomers() {
+  return db.select({ id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName, role: customers.role, acceptingRequests: customers.acceptingRequests })
+    .from(customers).orderBy(asc(customers.email))
+}
+
 export function registerAdminRoutes(app: FastifyInstance): void {
   app.get('/api/admin/products', { preHandler: guard }, async () => findAdminProducts())
+
+  app.get('/api/admin/customers', { preHandler: guard }, async () => findAdminCustomers())
+
+  /** The only way to grant the `artist` role today; `admin` can still also be granted via `npm run admin:grant`. */
+  app.patch('/api/admin/customers/:id/role', { preHandler: guard }, async (request) => {
+    const { id } = idParamSchema.parse(request.params)
+    const input = customerRoleUpdateSchema.parse(request.body)
+    const [updated] = await db.update(customers).set({ role: input.role, updatedAt: new Date() }).where(eq(customers.id, id))
+      .returning({ id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName, role: customers.role, acceptingRequests: customers.acceptingRequests })
+    if (!updated) throw new DomainError('customer_not_found', 'Customer not found', { id })
+    return updated
+  })
 
   app.patch('/api/admin/products/:id', { preHandler: guard }, async (request) => {
     const { id } = idParamSchema.parse(request.params)

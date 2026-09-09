@@ -17,6 +17,7 @@
     "admin:grant": "tsx src/scripts/grant-admin.ts"
   },
   "dependencies": {
+    "@fastify/compress": "^9.2.0",
     "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^11.3.0",
     "dotenv": "^17.4.2",

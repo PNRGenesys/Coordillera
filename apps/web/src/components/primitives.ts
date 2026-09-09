@@ -58,6 +58,14 @@ export const Input = styled.input`
   font-size: 0.9rem;
   padding: 0.6rem 0.75rem;
 `
+export const Textarea = styled.textarea`
+  border: 1px solid var(--color-border);
+  font-family: inherit;
+  font-size: 0.9rem;
+  min-height: 6rem;
+  padding: 0.6rem 0.75rem;
+  resize: vertical;
+`
 export const Select = styled.select`
   background: var(--color-background);
   border: 1px solid var(--color-border);
@@ -129,6 +137,10 @@ export const ProductGrid = styled.div`
   display: grid;
   gap: 1.5rem;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 
   @media (max-width: 900px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));

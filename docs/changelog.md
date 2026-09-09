@@ -2,6 +2,32 @@
 
 Este archivo registra los cambios incluidos en cada commit solicitado. Las entradas se agregan antes de crear el commit.
 
+## Diseno de estilo personalizado (fursona), rol de artista y notificaciones
+
+- Nuevo rol `artist`, asignable solo por un administrador. `/admin` gana una tercera seccion, "Clientes", que lista todas las cuentas con un selector de rol (`GET /api/admin/customers`, `PATCH /api/admin/customers/:id/role`); antes la unica forma de dar un rol era el script `npm run admin:grant`, que solo cubria `admin`.
+- En cualquier ficha de producto, el boton "¿Quieres tu estilo personalizado?" lleva a `/custom-design/new`. Sin sesion, pasa primero por `/account?next=...` y vuelve ahi despues de iniciar sesion o registrarse. Fuera del horario de 9am a 6pm hora Colombia el boton queda deshabilitado con el aviso correspondiente; la API rechaza la solicitud igual si se salta ese control (`outside_business_hours`).
+- La solicitud deja elegir categoria, prenda y variante del catalogo existente (no hay una prenda "en blanco" separada), describir la fursona, subir una foto de referencia (ajustada sin recorte, no como el avatar cuadrado) y escoger artista: uno especifico con su cola visible (cuantos pedidos tiene) o "artista mas rapido disponible", resuelto en el servidor. El pago se cobra de una vez: precio normal de la variante mas un recargo (hoy 50%, placeholder pendiente de definir con artistas y administracion), y crea una orden real con reserva de inventario igual que el checkout normal.
+- El artista tiene su propio panel (`/artist`, visible solo con ese rol) con un interruptor de disponibilidad ("Disponible para pedidos" / "No disponible para pedidos", que solo afecta si le llegan pedidos nuevos, no a su cola actual) y su cola de pedidos activos ordenada por fecha de solicitud, con un estimado de dias por pedido y la subida del diseno final.
+- Al entregar el diseno, el cliente recibe una notificacion (nueva seccion `/notifications`, con contador de no leidas en la cabecera) desde la que aprueba o pide cambios con un comentario; pedir cambios devuelve la solicitud a la cola del artista con ese comentario visible, y aprobar le avisa al artista.
+- `apps/web/src/lib/avatar.ts` comparte ahora su carga de imagen (`URL.createObjectURL`) con el nuevo `lib/image-resize.ts`, que ademas agrega un ajuste sin recorte reutilizado por la foto de referencia y el diseno final.
+- Base de datos: tablas nuevas `custom_design_requests` y `notifications`, columna `customers.accepting_requests`, e indices por artista y por cliente sobre `custom_design_requests` para las dos consultas de listado.
+
+## Rendimiento en gama baja y correccion de layout mobile/tablet
+
+- La imagen de producto ya navega directo a la ficha (antes solo el enlace "Ver" lo hacia), con resaltado al pasar el cursor o enfocar con teclado.
+- `CartPage`: el stepper, el precio y "Quitar" ya no quedan apretados en la columna de 72px de la miniatura en mobile; ahora ocupan su propia fila.
+- `FieldRow` (usado por checkout, cuenta y admin) colapsa a una columna bajo 480px en vez de forzar dos siempre.
+- La guia de tallas desborda con scroll horizontal en vez de romper el ancho de la pagina cuando tiene muchas columnas.
+- La paginacion numerada de `/shop` y el grupo de acciones de la cabecera ya envuelven (`flex-wrap`) en vez de desbordar en pantallas angostas o con nombres largos.
+- `ProductGrid` suma un paso intermedio a 3 columnas entre 900 y 1100px, para que las tablets horizontales no queden con tarjetas de catalogo muy angostas.
+- El titulo del hero del inicio tenia un tamano minimo de 60px que nunca bajaba; en un telefono de 320-375px quedaba desproporcionado. El minimo bajo a 44px.
+- El hero rotativo del inicio y la imagen principal de la ficha de producto bajaban siempre la version de 1200px, aunque el telefono fuera angosto; ahora usan `srcSet`/`sizes` como ya hacia la tarjeta de producto.
+- Subir foto de perfil codificaba el archivo completo a base64 con `FileReader` solo para decodificarlo de nuevo en una imagen; ahora usa `URL.createObjectURL`, que evita ese paso en fotos de varios MB tomadas con el celular.
+- El build de `apps/web` separa el codigo de las librerias (React, Redux) en su propio chunk, para que el navegador lo reutilice entre despliegues en vez de descargarlo de nuevo con cada cambio de una sola ruta.
+- La API agrega el paquete `@fastify/compress`: toda respuesta JSON viaja comprimida, lo que pesa mas en una red movil lenta que cualquier ajuste de consulta.
+- `product_variants.product_id` y `product_images.product_id` no tenian indice pese a ser la columna mas consultada del catalogo (join de `/shop` y `/product/:slug`); se agrego el indice a ambas.
+- `/api/products` hacia dos consultas casi identicas por pagina: la paginada y otra solo para el total. Ahora el total sale de la misma consulta con `count(*) over()`, salvo en la pagina vacia por desborde, donde se calcula aparte. De paso corrige un bug: el total ignoraba el filtro "en existencia" y contaba tambien los productos agotados.
+
 ## La tienda asume Colombia
 
 - Los formularios dejan de pedir el pais. La API lo completa con `STORE_COUNTRY` (`CO` por defecto), asi que la direccion guardada lo sigue teniendo y volver a pedirlo es cambiar una variable.

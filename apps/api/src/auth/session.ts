@@ -11,7 +11,7 @@ export const SESSION_COOKIE = 'cordillera_session'
 
 const TOKEN_BYTES = 32
 
-export type CustomerRole = 'customer' | 'admin'
+export type CustomerRole = 'customer' | 'admin' | 'artist'
 
 export type AccountProfile = {
   id: string
@@ -22,6 +22,8 @@ export type AccountProfile = {
   role: CustomerRole
   avatar: string | null
   shippingAddress: Record<string, string> | null
+  /** Only meaningful for `role: 'artist'`: whether they currently show up for new custom design requests. */
+  acceptingRequests: boolean
 }
 
 function hashToken(token: string): string {
@@ -54,6 +56,7 @@ export async function findSessionCustomer(request: FastifyRequest): Promise<Acco
   const [customer] = await db.select({
     id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName,
     phone: customers.phone, role: customers.role, avatar: customers.avatar, shippingAddress: customers.shippingAddress,
+    acceptingRequests: customers.acceptingRequests,
   })
     .from(customerSessions).innerJoin(customers, eq(customers.id, customerSessions.customerId))
     .where(and(eq(customerSessions.tokenHash, hashToken(token)), gt(customerSessions.expiresAt, new Date())))
@@ -72,5 +75,13 @@ export async function requireAdmin(request: FastifyRequest): Promise<AccountProf
   const account = await findSessionCustomer(request)
   if (!account) throw new DomainError('unauthenticated', 'Sign in to continue')
   if (account.role !== 'admin') throw new DomainError('forbidden', 'This account is not an administrator')
+  return account
+}
+
+/** Guard for `/api/artist/*`: the session must exist and belong to an artist. */
+export async function requireArtist(request: FastifyRequest): Promise<AccountProfile> {
+  const account = await findSessionCustomer(request)
+  if (!account) throw new DomainError('unauthenticated', 'Sign in to continue')
+  if (account.role !== 'artist') throw new DomainError('forbidden', 'This account is not an artist')
   return account
 }

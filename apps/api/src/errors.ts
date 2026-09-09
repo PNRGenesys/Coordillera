@@ -17,6 +17,12 @@ export type DomainErrorCode =
   | 'order_not_found'
   | 'invalid_status_change'
   | 'email_required'
+  | 'outside_business_hours'
+  | 'artist_unavailable'
+  | 'no_artists_available'
+  | 'custom_design_request_not_found'
+  | 'customer_not_found'
+  | 'notification_not_found'
 
 const statusByCode: Record<DomainErrorCode, number> = {
   cart_not_found: 404,
@@ -34,6 +40,12 @@ const statusByCode: Record<DomainErrorCode, number> = {
   order_not_found: 404,
   invalid_status_change: 409,
   email_required: 400,
+  outside_business_hours: 409,
+  artist_unavailable: 409,
+  no_artists_available: 409,
+  custom_design_request_not_found: 404,
+  customer_not_found: 404,
+  notification_not_found: 404,
 }
 
 export class DomainError extends Error {

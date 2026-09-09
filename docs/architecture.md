@@ -94,3 +94,4 @@ Antes de produccion se implementaran verificacion de correo y recuperacion de co
 
 - Frontend (`apps/web`): Vitest con `jsdom` y Testing Library. Cubre logica pura (`lib/`), reductores/selectores del store y render de componentes.
 - API (`apps/api`): Vitest en entorno `node`, pruebas de integracion que levantan la aplicacion Fastify con `app.inject()` y golpean la base de datos local. Crean sus propios datos con SKU y slug de prueba y los eliminan al terminar, para no contaminar el catalogo. Corren en serie porque comparten una sola base.
+- End-to-end (`apps/e2e`): Playwright, navegador real contra `apps/web` y `apps/api` levantados por `playwright.config.ts` (`npm run test:e2e`, requiere `npm run db:up` primero y, la primera vez, `npm run test:e2e:install` para el navegador). Hoy solo hay una prueba de humo; la suite real es trabajo pendiente (`docs/pending-work.md` #11).

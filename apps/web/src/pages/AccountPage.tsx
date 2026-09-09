@@ -1,5 +1,6 @@
 import { styled } from '@linaria/react'
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AccountAvatar } from '../components/AccountAvatar'
 import {
   Field,
@@ -64,12 +65,21 @@ const Actions = styled.div`
 
 export function AccountPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const next = searchParams.get('next')
   const { account, isLoading } = useAccount()
   const [signIn, signInState] = useLoginMutation()
   const [createAccount, registerState] = useRegisterMutation()
   const [signOut, signOutState] = useLogoutMutation()
   const [mode, setMode] = useState<Mode>('signIn')
   const [form, setForm] = useState<RegisterInput>(emptyForm)
+
+  // Arriving here from a page that required a session (e.g. the custom design request) sends the
+  // customer back there once they are signed in, instead of stranding them on their account summary.
+  useEffect(() => {
+    if (account && next) void navigate(next)
+  }, [account, next, navigate])
 
   function updateField(field: keyof RegisterInput) {
     return (event: ChangeEvent<HTMLInputElement>) => {

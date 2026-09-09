@@ -69,3 +69,21 @@ El frontend es estatico (`npm run build` deja `apps/web/dist`), asi que puede ir
 ## 9. Producto todavia no empezado
 
 Pasarela de pago, envios y costos, correos transaccionales y contenido editorial real (textos y colecciones definitivas).
+
+## 10. Diseno personalizado (fursona)
+
+- El recargo sobre el precio normal de la prenda esta fijo en 50% (`CUSTOM_DESIGN_SURCHARGE_PERCENT`) como placeholder. Falta reunirse con artistas y administracion para acordar el porcentaje definitivo.
+- El pago se cobra completo al solicitar el diseno, pero sigue el mismo modelo placeholder que el resto del checkout (ver punto 9): la orden queda en `pending_payment` y un administrador la pasa a `paid` a mano. Cuando exista una pasarela real, debe cubrir tambien este flujo.
+- El panel de administrador no tiene vista de las solicitudes de diseno personalizado; el admin solo asigna el rol de artista desde la nueva seccion de clientes. Si el negocio lo necesita, es una seccion nueva por construir.
+- No esta definido que pasa operativamente despues de "approved": hoy la orden sigue el ciclo de estados normal (`pending_payment` -> `paid` -> ...) sin un paso especial de "enviar a producir/imprimir" el diseno aprobado sobre la prenda.
+- La foto de referencia y el diseno final se guardan como data URL en la base de datos, igual que la foto de perfil (ver punto 1) y por la misma razon: no hay almacenamiento de archivos todavia.
+
+## 11. Pruebas end-to-end (Playwright)
+
+La infraestructura ya esta lista en `apps/e2e` (nuevo workspace `@cordillera/e2e`), pero todavia no hay una suite real, solo una prueba de humo (`apps/e2e/tests/smoke.spec.ts`) que confirma que la portada carga:
+
+- `npm run test:e2e:install` descarga el navegador Chromium (una sola vez, requiere red).
+- `npm run test:e2e` corre la suite: `playwright.config.ts` levanta la API y el frontend (`npm run dev:api`/`dev:web`) contra el Postgres de `docker-compose.yml`, asi que hace falta `npm run db:up` primero.
+- Nada de esto se instalo ni se corrio en el entorno de desarrollo asistido por IA (sin Docker, sin navegador); queda listo para ejecutarse en una maquina con esas dos cosas disponibles.
+- Falta escribir la suite real: registro/login, compra completa (carrito -> checkout -> pedido), y el flujo de diseno personalizado (solicitud -> panel del artista -> notificacion -> aprobar/pedir cambios) descrito en el punto 10.
+- Todavia no hay CI (ver punto 7 de despliegue), asi que falta decidir donde y cuando correr esta suite ademas de en local.

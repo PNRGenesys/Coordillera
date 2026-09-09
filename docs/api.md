@@ -35,7 +35,7 @@ GET  /api/auth/me                                                               
 PATCH /api/auth/me       { "email"?, "firstName"?, "lastName"?, "phone"?, "avatar"?, "shippingAddress"? }              -> 200 AccountProfile
 ```
 
-`AccountProfile = { id, email, firstName, lastName, phone, role, avatar, shippingAddress }`, con `role` igual a `customer` o `admin`. La contraseña nunca sale en una respuesta.
+`AccountProfile = { id, email, firstName, lastName, phone, role, avatar, shippingAddress, acceptingRequests }`, con `role` igual a `customer`, `admin` o `artist`. `acceptingRequests` solo importa para `role: artist` (ver [Artista](#artista)). La contraseña nunca sale en una respuesta.
 
 La dirección omite `country`: la API lo completa con `STORE_COUNTRY` (`CO`), porque la tienda envía a un solo país. Enviarlo explícitamente sigue siendo válido.
 
@@ -152,13 +152,53 @@ POST /api/restock-requests   { "variantId": "uuid", "email": "cliente@ejemplo.co
 
 Con sesión iniciada el correo sobra: se toma el de la cuenta. Sin sesión y sin correo responde `400 email_required`.
 
+## Diseño personalizado
+
+Rutas de sesión (`requireSessionCustomer`, igual que `PATCH /api/auth/me`): sin cookie de sesión responden `401 unauthenticated`.
+
+| Metodo | Ruta | Funcion |
+| --- | --- | --- |
+| GET | `/api/custom-design/artists` | Lista artistas disponibles con su cola (`pendingCount`) y el recargo vigente. |
+| POST | `/api/custom-design/requests` | Crea la solicitud: paga de una vez y reserva existencias, igual que el checkout normal. |
+| GET | `/api/custom-design/requests/:id` | Detalle de una solicitud propia. |
+| POST | `/api/custom-design/requests/:id/approve` | El cliente aprueba el diseño entregado. |
+| POST | `/api/custom-design/requests/:id/request-changes` | El cliente pide cambios con un comentario; la solicitud vuelve a la cola del artista. |
+
+```
+GET  /api/custom-design/artists                                                                          -> 200 { surchargePercent, artists: [{ id, name, pendingCount }] }
+POST /api/custom-design/requests  { baseVariantId, characterDescription?, referenceImage, artistId: uuid | "fastest", shippingAddress }  -> 201 { id, orderNumber, totalCents, currency }
+```
+
+`referenceImage` es una imagen en forma de data URL (mismo formato que `avatar`), limitada por `CUSTOM_DESIGN_IMAGE_MAX_CHARACTERS`. El precio es `priceCents * (1 + CUSTOM_DESIGN_SURCHARGE_PERCENT / 100)` (hoy 50%, placeholder). Fuera de las 9am-6pm hora Colombia responde `409 outside_business_hours`; un artista sin disponibilidad o un `artistId` que no existe responde `409 artist_unavailable`, y si no hay ningún artista disponible para `"fastest"`, `409 no_artists_available`.
+
+## Artista
+
+Toda ruta exige la cookie de sesión de una cuenta con `role = artist`. Sin sesión responde `401 unauthenticated`; con una cuenta que no es artista, `403 forbidden`. El rol lo otorga un administrador desde `/admin` (ver [Administracion](#administracion)).
+
+| Metodo | Ruta | Funcion |
+| --- | --- | --- |
+| GET | `/api/artist/status` | Devuelve si el artista acepta pedidos nuevos. |
+| PATCH | `/api/artist/status` | Cambia la disponibilidad (`{ acceptingRequests }`); no afecta la cola ya asignada. |
+| GET | `/api/artist/requests` | Cola de solicitudes activas (`pending`, `changes_requested`, `delivered`), ordenada por fecha de solicitud. |
+| PATCH | `/api/artist/requests/:id/estimate` | Guarda el estimado de días (`{ estimatedDays }`). |
+| POST | `/api/artist/requests/:id/deliver` | Sube el diseño final (`{ finalDesignImage }`) y notifica al cliente. |
+
+## Notificaciones
+
+Rutas de sesión (cualquier rol).
+
+| Metodo | Ruta | Funcion |
+| --- | --- | --- |
+| GET | `/api/notifications` | Notificaciones propias, mas recientes primero. |
+| POST | `/api/notifications/:id/read` | Marca una notificación propia como leída. |
+
 ## Errores
 
-Toda respuesta de error tiene la forma `{ code, message, details }`. Códigos actuales: `cart_not_found`, `cart_empty`, `cart_item_not_found`, `product_not_found`, `variant_not_found`, `collection_not_found`, `out_of_stock`, `invalid_adjustment`, `email_taken`, `invalid_credentials`, `unauthenticated`, `forbidden`, `order_not_found`, `invalid_status_change`, `email_required`, `invalid_request` (payload inválido según Zod), `internal_error`.
+Toda respuesta de error tiene la forma `{ code, message, details }`. Códigos actuales: `cart_not_found`, `cart_empty`, `cart_item_not_found`, `product_not_found`, `variant_not_found`, `collection_not_found`, `out_of_stock`, `invalid_adjustment`, `email_taken`, `invalid_credentials`, `unauthenticated`, `forbidden`, `order_not_found`, `invalid_status_change`, `email_required`, `outside_business_hours`, `artist_unavailable`, `no_artists_available`, `custom_design_request_not_found`, `customer_not_found`, `notification_not_found`, `invalid_request` (payload inválido según Zod), `internal_error`.
 
 ## Administracion
 
-Toda ruta administrativa exige la cookie de sesión de una cuenta con `role = admin`. Sin sesión responde `401 unauthenticated`; con una cuenta normal, `403 forbidden`. El rol se otorga con `npm.cmd run admin:grant --workspace=@cordillera/api -- <correo>`.
+Toda ruta administrativa exige la cookie de sesión de una cuenta con `role = admin`. Sin sesión responde `401 unauthenticated`; con una cuenta normal, `403 forbidden`. El primer administrador se otorga con `npm.cmd run admin:grant --workspace=@cordillera/api -- <correo>`; a partir de ahí, un administrador puede dar el rol `admin` o `artist` a cualquier cuenta desde `/admin` (o `PATCH /api/admin/customers/:id/role`).
 
 | Metodo | Ruta | Funcion |
 | --- | --- | --- |
@@ -169,6 +209,8 @@ Toda ruta administrativa exige la cookie de sesión de una cuenta con `role = ad
 | POST | `/api/admin/inventory/adjustments` | Ajusta el stock de una variante y deja trazabilidad (`inventory_movements`). |
 | GET | `/api/admin/orders` | Lista los pedidos con cliente, dirección, líneas y datos de envío. |
 | PATCH | `/api/admin/orders/:id` | Cambia el estado del pedido y registra transportadora y número de guía. |
+| GET | `/api/admin/customers` | Lista todas las cuentas con su rol. |
+| PATCH | `/api/admin/customers/:id/role` | Cambia el rol de una cuenta (`customer`, `admin` o `artist`). |
 
 Todas las actualizaciones son parciales y rechazan un cuerpo vacío (`400 invalid_request`).
 

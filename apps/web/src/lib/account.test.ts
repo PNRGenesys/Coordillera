@@ -3,7 +3,7 @@ import type { AccountProfile, ShippingAddress } from '../store/catalog-api'
 import { accountDisplayName, accountErrorKey, accountFullName, formatAddress } from './account'
 
 function profile(overrides: Partial<AccountProfile> = {}): AccountProfile {
-  return { id: 'id', email: 'ana@cordillera.test', firstName: 'Ana', lastName: 'Ruiz', phone: null, role: 'customer', avatar: null, shippingAddress: null, ...overrides }
+  return { id: 'id', email: 'ana@cordillera.test', firstName: 'Ana', lastName: 'Ruiz', phone: null, role: 'customer', avatar: null, shippingAddress: null, acceptingRequests: true, ...overrides }
 }
 
 function address(overrides: Partial<ShippingAddress> = {}): ShippingAddress {

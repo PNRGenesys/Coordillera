@@ -1,6 +1,6 @@
 import { styled } from '@linaria/react'
 import { useMemo, useState, type FormEvent } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Price } from '../components/Price'
 import { QuantityStepper } from '../components/QuantityStepper'
 import { Section } from '../components/primitives'
@@ -8,8 +8,10 @@ import { SizeGuideTable } from '../components/SizeGuideTable'
 import { ProductDetailSkeleton } from '../components/Skeleton'
 import { StateMessage } from '../components/StateMessage'
 import { VariantSelector } from '../components/VariantSelector'
+import { isCustomDesignWindowOpen } from '../lib/business-hours'
 import { useAccount } from '../lib/use-account'
 import { useTranslation } from '../lib/use-translation'
+import { toThumbUrl } from '../lib/image'
 import { sortVariantsBySizeGuide } from '../lib/variant-order'
 import { selectSessionId } from '../store/cart-slice'
 import { useAddCartItemMutation, useGetProductQuery, useRequestRestockMutation } from '../store/catalog-api'
@@ -161,12 +163,44 @@ const MobileBuyPrice = styled.p`
 const MobileBuyButton = styled(AddButton)`
   padding: 0.75rem 1.25rem;
 `
+const CustomDesignSection = styled.div`
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 1.5rem;
+`
+const CustomDesignButton = styled.button`
+  background: transparent;
+  border: 1px solid var(--color-ink);
+  color: var(--color-ink);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+  justify-self: start;
+  letter-spacing: 0.08em;
+  padding: 1rem 1.5rem;
+  text-transform: uppercase;
+
+  &:disabled {
+    border-color: var(--color-border);
+    color: var(--color-border);
+    cursor: not-allowed;
+  }
+`
+const CustomDesignHint = styled.p`
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  margin: 0;
+`
 
 export function ProductPage() {
   const { t, language } = useTranslation()
+  const navigate = useNavigate()
   const { slug } = useParams<{ slug: string }>()
   const sessionId = useAppSelector(selectSessionId)
   const { account } = useAccount()
+  const isCustomDesignOpen = isCustomDesignWindowOpen()
   const { data: product, isLoading, isError } = useGetProductQuery({ slug: slug ?? '', lang: language }, { skip: !slug })
   const [addCartItem, addCartItemState] = useAddCartItemMutation()
   const [requestRestock, requestRestockState] = useRequestRestockMutation()
@@ -221,6 +255,12 @@ export function ProductPage() {
     void requestRestock({ variantId: selectedVariant.id, email: account ? undefined : restockEmail })
   }
 
+  function goToCustomDesign(): void {
+    if (!product || !selectedVariant) return
+    const target = `/custom-design/new?product=${product.slug}&variant=${selectedVariant.id}`
+    void navigate(account ? target : `/account?next=${encodeURIComponent(target)}`)
+  }
+
   return (
     <Section>
       <Layout>
@@ -228,7 +268,13 @@ export function ProductPage() {
           {activeImage ? (
             <>
               <ActiveImageWrapper>
-                <GalleryImage src={activeImage.url} alt={activeImage.alt ?? product.name} />
+                <GalleryImage
+                  src={activeImage.url}
+                  srcSet={`${toThumbUrl(activeImage.url)} 480w, ${activeImage.url} 1200w`}
+                  sizes="(max-width: 800px) 100vw, 45vw"
+                  alt={activeImage.alt ?? product.name}
+                  decoding="async"
+                />
                 {product.images.length > 1 && (
                   <>
                     <PrevImageButton type="button" aria-label={t('product.previousImage')} onClick={showPreviousImage}>‹</PrevImageButton>
@@ -302,6 +348,12 @@ export function ProductPage() {
               rows={product.sizeGuideRows}
             />
           )}
+          <CustomDesignSection>
+            <CustomDesignButton type="button" onClick={goToCustomDesign} disabled={!isCustomDesignOpen || !selectedVariant}>
+              {t('customDesign.cta')}
+            </CustomDesignButton>
+            {!isCustomDesignOpen && <CustomDesignHint>{t('customDesign.outsideHours')}</CustomDesignHint>}
+          </CustomDesignSection>
         </Info>
       </Layout>
       {!isOutOfStock && selectedVariant && (

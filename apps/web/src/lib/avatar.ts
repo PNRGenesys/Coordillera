@@ -1,3 +1,5 @@
+import { loadImageFromFile } from './image-resize'
+
 /** Side of the square the picture is reduced to before it travels to the API. */
 export const AVATAR_SIZE = 256
 
@@ -17,30 +19,12 @@ export function squareCrop(width: number, height: number): CropBox {
   return { sourceX: (width - side) / 2, sourceY: (height - side) / 2, side }
 }
 
-function loadImage(source: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-    image.addEventListener('load', () => resolve(image))
-    image.addEventListener('error', () => reject(new Error('The picture could not be read')))
-    image.src = source
-  })
-}
-
-function readFile(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.addEventListener('load', () => resolve(String(reader.result)))
-    reader.addEventListener('error', () => reject(new Error('The file could not be read')))
-    reader.readAsDataURL(file)
-  })
-}
-
 /**
  * Turns the file the customer picked into a small square data URL. The API stores the text as it
  * arrives, so shrinking here is what keeps a phone photo of several megabytes out of the database.
  */
 export async function toAvatarDataUrl(file: File): Promise<string> {
-  const image = await loadImage(await readFile(file))
+  const image = await loadImageFromFile(file)
   const crop = squareCrop(image.naturalWidth, image.naturalHeight)
 
   const canvas = document.createElement('canvas')

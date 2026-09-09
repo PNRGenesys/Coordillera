@@ -31,7 +31,7 @@ const HeroCopy = styled.div`
 `
 const Title = styled.h1`
   font-family: var(--font-display);
-  font-size: clamp(3.75rem, 7.2vw, 7.5rem);
+  font-size: clamp(2.75rem, 7.2vw, 7.5rem);
   font-weight: var(--font-display-weight);
   letter-spacing: var(--font-display-tracking);
   line-height: 0.84;

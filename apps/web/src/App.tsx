@@ -12,6 +12,9 @@ const CheckoutPage = lazy(() => import('./pages/CheckoutPage').then((module) => 
 const AccountPage = lazy(() => import('./pages/AccountPage').then((module) => ({ default: module.AccountPage })))
 const AccountEditPage = lazy(() => import('./pages/AccountEditPage').then((module) => ({ default: module.AccountEditPage })))
 const AdminPage = lazy(() => import('./pages/AdminPage').then((module) => ({ default: module.AdminPage })))
+const CustomDesignRequestPage = lazy(() => import('./pages/CustomDesignRequestPage').then((module) => ({ default: module.CustomDesignRequestPage })))
+const ArtistDashboardPage = lazy(() => import('./pages/ArtistDashboardPage').then((module) => ({ default: module.ArtistDashboardPage })))
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then((module) => ({ default: module.NotificationsPage })))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })))
 
 /** Each page ships as its own chunk, so visiting the storefront never downloads the admin panel's code. */
@@ -34,6 +37,9 @@ function App() {
           <Route path="account" element={<AccountPage />} />
           <Route path="account/edit" element={<AccountEditPage />} />
           <Route path="admin" element={<AdminPage />} />
+          <Route path="custom-design/new" element={<CustomDesignRequestPage />} />
+          <Route path="artist" element={<ArtistDashboardPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

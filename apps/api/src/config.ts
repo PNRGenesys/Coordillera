@@ -21,5 +21,12 @@ export const config = {
   passwordMinLength: readNumber('PASSWORD_MIN_LENGTH', 8),
   /** Longest data URL accepted for a profile picture; the web app shrinks the file before sending it. */
   avatarMaxCharacters: readNumber('AVATAR_MAX_CHARACTERS', 200_000),
+  /**
+   * How much a custom design (fursona) request costs on top of the base garment's normal price.
+   * Placeholder until artists and administration agree on a final figure (see docs/pending-work.md).
+   */
+  customDesignSurchargePercent: readNumber('CUSTOM_DESIGN_SURCHARGE_PERCENT', 50),
+  /** Longest data URL accepted for a fursona reference photo or a finished design; not square-cropped like an avatar, so it allows more room. */
+  customDesignImageMaxCharacters: readNumber('CUSTOM_DESIGN_IMAGE_MAX_CHARACTERS', 600_000),
   isProduction: process.env.NODE_ENV === 'production',
 }

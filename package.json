@@ -13,7 +13,10 @@
     "db:down": "docker compose down",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e:install": "npm run test:e2e:install --workspace=@cordillera/e2e",
+    "test:e2e": "npm run test:e2e --workspace=@cordillera/e2e",
+    "test:e2e:ui": "npm run test:e2e:ui --workspace=@cordillera/e2e"
   },
   "devDependencies": {
     "concurrently": "latest"

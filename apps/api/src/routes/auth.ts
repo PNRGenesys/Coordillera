@@ -10,6 +10,7 @@ import { loginSchema, profileUpdateSchema, registerSchema } from '../schemas.js'
 const profileColumns = {
   id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName,
   phone: customers.phone, role: customers.role, avatar: customers.avatar, shippingAddress: customers.shippingAddress,
+  acceptingRequests: customers.acceptingRequests,
 }
 
 export function registerAuthRoutes(app: FastifyInstance): void {
@@ -75,5 +76,6 @@ function toProfile(account: AccountProfile): AccountProfile {
   return {
     id: account.id, email: account.email, firstName: account.firstName, lastName: account.lastName,
     phone: account.phone, role: account.role, avatar: account.avatar, shippingAddress: account.shippingAddress,
+    acceptingRequests: account.acceptingRequests,
   }
 }

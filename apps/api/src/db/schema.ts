@@ -10,7 +10,9 @@ export const orderStatus = pgEnum('order_status', ['pending_payment', 'paid', 'p
 export const inventoryMovementType = pgEnum('inventory_movement_type', ['restock', 'adjustment', 'reservation', 'release', 'sale', 'return'])
 
 export const releaseStatus = pgEnum('release_status', ['available', 'preorder', 'coming_soon'])
-export const customerRole = pgEnum('customer_role', ['customer', 'admin'])
+export const customerRole = pgEnum('customer_role', ['customer', 'admin', 'artist'])
+export const customDesignRequestStatus = pgEnum('custom_design_request_status', ['pending', 'delivered', 'changes_requested', 'approved'])
+export const notificationKind = pgEnum('notification_kind', ['design_delivered', 'changes_requested', 'design_approved'])
 
 export const orderNumberSequence = pgSequence('order_number_seq', { startWith: 1000, increment: 1 })
 
@@ -34,10 +36,10 @@ export const products = pgTable('products', {
 }, (table) => [index('products_status_idx').on(table.status), index('products_collection_idx').on(table.collectionId), index('products_category_idx').on(table.categoryId)])
 export const productVariants = pgTable('product_variants', {
   id: uuid('id').defaultRandom().primaryKey(), productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(), sku: varchar('sku', { length: 80 }).notNull().unique(), barcode: varchar('barcode', { length: 80 }), name: varchar('name', { length: 180 }).notNull(), color: varchar('color', { length: 60 }), size: varchar('size', { length: 30 }), priceCents: integer('price_cents').notNull(), compareAtPriceCents: integer('compare_at_price_cents'), weightGrams: integer('weight_grams'), attributes: jsonb('attributes').$type<Record<string, string>>().default({}).notNull(), translations: jsonb('translations').$type<Translations<{ name: string; color: string; size: string }>>().default({}).notNull(), ...timestamps,
-})
+}, (table) => [index('product_variants_product_idx').on(table.productId)])
 export const productImages = pgTable('product_images', {
   id: uuid('id').defaultRandom().primaryKey(), productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(), variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }), url: text('url').notNull(), alt: varchar('alt', { length: 180 }), position: integer('position').default(0).notNull(), ...timestamps,
-})
+}, (table) => [index('product_images_product_idx').on(table.productId)])
 export const inventoryItems = pgTable('inventory_items', {
   id: uuid('id').defaultRandom().primaryKey(), variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }).notNull().unique(), onHand: integer('on_hand').default(0).notNull(), reserved: integer('reserved').default(0).notNull(), reorderPoint: integer('reorder_point').default(0).notNull(), ...timestamps,
 })
@@ -49,9 +51,11 @@ export const inventoryMovements = pgTable('inventory_movements', {
  * `avatar` holds a small square picture as a data URL. It lives in the row because the project has no file
  * storage yet, and the API caps its size so the column cannot grow without a limit.
  * `shippingAddress` is the address the customer keeps on file; each order still copies its own.
+ * `acceptingRequests` only means something for `role: 'artist'`: whether they currently show up as a
+ * choice for new custom design requests. Their existing queue keeps going regardless of this flag.
  */
 export const customers = pgTable('customers', {
-  id: uuid('id').defaultRandom().primaryKey(), email: varchar('email', { length: 320 }).notNull().unique(), firstName: varchar('first_name', { length: 100 }), lastName: varchar('last_name', { length: 100 }), phone: varchar('phone', { length: 40 }), passwordHash: varchar('password_hash', { length: 200 }), role: customerRole('role').default('customer').notNull(), avatar: text('avatar'), shippingAddress: jsonb('shipping_address').$type<Record<string, string>>(), ...timestamps,
+  id: uuid('id').defaultRandom().primaryKey(), email: varchar('email', { length: 320 }).notNull().unique(), firstName: varchar('first_name', { length: 100 }), lastName: varchar('last_name', { length: 100 }), phone: varchar('phone', { length: 40 }), passwordHash: varchar('password_hash', { length: 200 }), role: customerRole('role').default('customer').notNull(), avatar: text('avatar'), shippingAddress: jsonb('shipping_address').$type<Record<string, string>>(), acceptingRequests: boolean('accepting_requests').default(true).notNull(), ...timestamps,
 })
 /** Only the hash of the session token is stored, so a database dump cannot be used to impersonate a customer. */
 export const customerSessions = pgTable('customer_sessions', {
@@ -75,3 +79,15 @@ export const inventoryReservations = pgTable('inventory_reservations', {
 export const restockRequests = pgTable('restock_requests', {
   id: uuid('id').defaultRandom().primaryKey(), variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }).notNull(), email: varchar('email', { length: 320 }).notNull(), notifiedAt: timestamp('notified_at', { withTimezone: true }), createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [uniqueIndex('restock_variant_email_unique').on(table.variantId, table.email)])
+/**
+ * A custom design (fursona) request pays for its base garment up front, so it always has a matching
+ * `orders` row (same lifecycle as a regular order). `referenceImageUrl`/`finalDesignImageUrl` are data
+ * URLs, same storage approach as `customers.avatar` until the project has real file storage.
+ */
+export const customDesignRequests = pgTable('custom_design_requests', {
+  id: uuid('id').defaultRandom().primaryKey(), customerId: uuid('customer_id').references(() => customers.id).notNull(), artistId: uuid('artist_id').references(() => customers.id).notNull(), baseVariantId: uuid('base_variant_id').references(() => productVariants.id).notNull(), orderId: uuid('order_id').references(() => orders.id).notNull().unique(), characterDescription: text('character_description'), referenceImageUrl: text('reference_image_url').notNull(), finalDesignImageUrl: text('final_design_image_url'), estimatedDays: integer('estimated_days'), revisionNote: text('revision_note'), status: customDesignRequestStatus('status').default('pending').notNull(), ...timestamps,
+}, (table) => [index('custom_design_requests_artist_idx').on(table.artistId), index('custom_design_requests_customer_idx').on(table.customerId)])
+/** `payload` carries the values a translated notification message interpolates (e.g. the garment name). */
+export const notifications = pgTable('notifications', {
+  id: uuid('id').defaultRandom().primaryKey(), customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'cascade' }).notNull(), kind: notificationKind('kind').notNull(), relatedRequestId: uuid('related_request_id').references(() => customDesignRequests.id, { onDelete: 'cascade' }).notNull(), payload: jsonb('payload').$type<Record<string, string>>().default({}).notNull(), readAt: timestamp('read_at', { withTimezone: true }), createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [index('notifications_customer_idx').on(table.customerId)])

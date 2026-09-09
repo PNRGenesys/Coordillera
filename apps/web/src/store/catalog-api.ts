@@ -127,6 +127,56 @@ export type ShippingAddress = {
   country?: string
 }
 
+export type AvailableArtist = { id: string; name: string; pendingCount: number }
+export type AvailableArtistsResponse = { surchargePercent: number; artists: AvailableArtist[] }
+
+export type CustomDesignRequestInput = {
+  baseVariantId: string
+  characterDescription?: string
+  referenceImage: string
+  artistId: string
+  shippingAddress: ShippingAddress
+}
+export type CustomDesignRequestCreated = { requestId: string; orderNumber: string; totalCents: number; currency: string; artistName: string }
+export type CustomDesignRequestStatus = 'pending' | 'delivered' | 'changes_requested' | 'approved'
+export type CustomDesignRequestDetail = {
+  id: string
+  characterDescription: string | null
+  referenceImageUrl: string
+  finalDesignImageUrl: string | null
+  estimatedDays: number | null
+  revisionNote: string | null
+  status: CustomDesignRequestStatus
+  createdAt: string
+  garmentName: string
+}
+
+export type ArtistQueueRequest = {
+  id: string
+  status: CustomDesignRequestStatus
+  createdAt: string
+  characterDescription: string | null
+  referenceImageUrl: string
+  finalDesignImageUrl: string | null
+  estimatedDays: number | null
+  revisionNote: string | null
+  garmentName: string
+  customerFirstName: string | null
+  customerLastName: string | null
+  customerEmail: string
+}
+export type ArtistStatus = { acceptingRequests: boolean }
+
+export type NotificationKind = 'design_delivered' | 'changes_requested' | 'design_approved'
+export type Notification = {
+  id: string
+  kind: NotificationKind
+  relatedRequestId: string
+  payload: Record<string, string>
+  readAt: string | null
+  createdAt: string
+}
+
 export type CheckoutInput = {
   sessionId: string
   email: string
@@ -138,7 +188,7 @@ export type CheckoutInput = {
 
 export type OrderStatus = 'pending_payment' | 'paid' | 'processing' | 'fulfilled' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
 
-export type CustomerRole = 'customer' | 'admin'
+export type CustomerRole = 'customer' | 'admin' | 'artist'
 
 export type AccountProfile = {
   id: string
@@ -150,6 +200,8 @@ export type AccountProfile = {
   /** Square picture kept as a data URL; the store has no file hosting yet. */
   avatar: string | null
   shippingAddress: ShippingAddress | null
+  /** Only meaningful for `role: 'artist'`: whether they currently show up for new custom design requests. */
+  acceptingRequests: boolean
 }
 
 /** Every field is optional: the account page sends what it has, and a null clears the picture or the address. */
@@ -224,6 +276,9 @@ export type AdminOrder = {
   items: AdminOrderItem[]
 }
 
+export type AdminCustomer = { id: string; email: string; firstName: string | null; lastName: string | null; role: CustomerRole; acceptingRequests: boolean }
+export type CustomerRoleUpdate = { id: string; role: CustomerRole }
+
 export type ProductUpdate = { name?: string; description?: string; composition?: string; status?: ProductStatus; release?: ProductRelease }
 export type ProductDiscount = { id: string; discountPercent: number }
 export type DiscountedVariant = { id: string; priceCents: number; compareAtPriceCents: number | null }
@@ -248,7 +303,7 @@ export const catalogApi = createApi({
   reducerPath: 'catalogApi',
   // `credentials` sends the session cookie when the web app runs on a different origin than the API.
   baseQuery: fetchBaseQuery({ baseUrl: '/api/', credentials: 'include' }),
-  tagTypes: ['Catalog', 'Cart', 'Account', 'Admin'],
+  tagTypes: ['Catalog', 'Cart', 'Account', 'Admin', 'CustomDesign', 'Artist', 'Notifications'],
   endpoints: (build) => ({
     getCollections: build.query<Collection[], Language>({
       query: (lang) => ({ url: 'collections', params: { lang } }),
@@ -337,6 +392,62 @@ export const catalogApi = createApi({
       query: ({ id, changes }) => ({ url: `admin/orders/${id}`, method: 'PATCH', body: changes }),
       invalidatesTags: ['Admin', 'Catalog'],
     }),
+    getAdminCustomers: build.query<AdminCustomer[], void>({
+      query: () => 'admin/customers',
+      providesTags: ['Admin'],
+    }),
+    updateCustomerRole: build.mutation<AdminCustomer, CustomerRoleUpdate>({
+      query: ({ id, role }) => ({ url: `admin/customers/${id}/role`, method: 'PATCH', body: { role } }),
+      invalidatesTags: ['Admin'],
+    }),
+    getCustomDesignArtists: build.query<AvailableArtistsResponse, void>({
+      query: () => 'custom-design/artists',
+      providesTags: ['CustomDesign'],
+    }),
+    submitCustomDesignRequest: build.mutation<CustomDesignRequestCreated, CustomDesignRequestInput>({
+      query: (body) => ({ url: 'custom-design/requests', method: 'POST', body }),
+      invalidatesTags: ['CustomDesign'],
+    }),
+    getCustomDesignRequest: build.query<CustomDesignRequestDetail, string>({
+      query: (id) => `custom-design/requests/${id}`,
+      providesTags: ['CustomDesign'],
+    }),
+    approveCustomDesignRequest: build.mutation<CustomDesignRequestDetail, string>({
+      query: (id) => ({ url: `custom-design/requests/${id}/approve`, method: 'POST' }),
+      invalidatesTags: ['CustomDesign', 'Notifications'],
+    }),
+    requestDesignChanges: build.mutation<CustomDesignRequestDetail, { id: string; comment: string }>({
+      query: ({ id, comment }) => ({ url: `custom-design/requests/${id}/request-changes`, method: 'POST', body: { comment } }),
+      invalidatesTags: ['CustomDesign', 'Notifications'],
+    }),
+    getArtistStatus: build.query<ArtistStatus, void>({
+      query: () => 'artist/status',
+      providesTags: ['Artist'],
+    }),
+    updateArtistStatus: build.mutation<ArtistStatus, boolean>({
+      query: (acceptingRequests) => ({ url: 'artist/status', method: 'PATCH', body: { acceptingRequests } }),
+      invalidatesTags: ['Artist', 'CustomDesign'],
+    }),
+    getArtistRequests: build.query<ArtistQueueRequest[], void>({
+      query: () => 'artist/requests',
+      providesTags: ['Artist'],
+    }),
+    updateArtistEstimate: build.mutation<ArtistQueueRequest, { id: string; estimatedDays: number }>({
+      query: ({ id, estimatedDays }) => ({ url: `artist/requests/${id}/estimate`, method: 'PATCH', body: { estimatedDays } }),
+      invalidatesTags: ['Artist'],
+    }),
+    deliverDesign: build.mutation<ArtistQueueRequest, { id: string; finalDesignImage: string }>({
+      query: ({ id, finalDesignImage }) => ({ url: `artist/requests/${id}/deliver`, method: 'POST', body: { finalDesignImage } }),
+      invalidatesTags: ['Artist', 'Notifications'],
+    }),
+    getNotifications: build.query<Notification[], void>({
+      query: () => 'notifications',
+      providesTags: ['Notifications'],
+    }),
+    markNotificationRead: build.mutation<{ id: string; readAt: string }, string>({
+      query: (id) => ({ url: `notifications/${id}/read`, method: 'POST' }),
+      invalidatesTags: ['Notifications'],
+    }),
   }),
 })
 
@@ -363,4 +474,18 @@ export const {
   useAdjustInventoryMutation,
   useGetAdminOrdersQuery,
   useUpdateAdminOrderMutation,
+  useGetAdminCustomersQuery,
+  useUpdateCustomerRoleMutation,
+  useGetCustomDesignArtistsQuery,
+  useSubmitCustomDesignRequestMutation,
+  useGetCustomDesignRequestQuery,
+  useApproveCustomDesignRequestMutation,
+  useRequestDesignChangesMutation,
+  useGetArtistStatusQuery,
+  useUpdateArtistStatusMutation,
+  useGetArtistRequestsQuery,
+  useUpdateArtistEstimateMutation,
+  useDeliverDesignMutation,
+  useGetNotificationsQuery,
+  useMarkNotificationReadMutation,
 } = catalogApi

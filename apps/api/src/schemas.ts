@@ -127,6 +127,32 @@ export const inventoryAdjustmentSchema = z.object({
   note: z.string().min(3).max(500),
 })
 
+export const CUSTOMER_ROLES = ['customer', 'admin', 'artist'] as const
+
+export const customerRoleUpdateSchema = z.object({ role: z.enum(CUSTOMER_ROLES) })
+
+/** Same data URL approach as `avatarSchema`, but not square-cropped, so it allows a larger picture. */
+const designImageSchema = z.string()
+  .max(config.customDesignImageMaxCharacters)
+  .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/, { message: 'The picture must be a PNG, JPEG or WebP data URL' })
+
+/** `artistId` is either a specific artist or the literal `'fastest'`, resolved server-side to whoever has the shortest queue. */
+export const customDesignRequestSchema = z.object({
+  baseVariantId: z.string().uuid(),
+  characterDescription: z.string().max(2_000).optional(),
+  referenceImage: designImageSchema,
+  artistId: z.union([z.string().uuid(), z.literal('fastest')]),
+  shippingAddress: shippingAddressSchema,
+})
+
+export const requestChangesSchema = z.object({ comment: z.string().min(1).max(1_000) })
+
+export const deliverDesignSchema = z.object({ finalDesignImage: designImageSchema })
+
+export const estimateSchema = z.object({ estimatedDays: z.number().int().min(1).max(60) })
+
+export const artistStatusSchema = z.object({ acceptingRequests: z.boolean() })
+
 export const productCreateSchema = z.object({
   name: z.string().min(2).max(180),
   slug: slugSchema.shape.slug,

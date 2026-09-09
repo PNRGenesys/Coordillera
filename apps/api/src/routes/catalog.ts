@@ -87,6 +87,9 @@ export function registerCatalogRoutes(app: FastifyInstance): void {
       // Only meaningful when every variant carries the same reference price; the storefront only renders it when minPriceCents === maxPriceCents.
       compareAtPriceCents: sql<number | null>`min(${productVariants.compareAtPriceCents})::int`,
       availableUnits: productAvailableUnits,
+      // A window function counts every product matching the filters (and the availability HAVING, once applied below)
+      // in the same query as the page of results, instead of a second query that repeats the same joins.
+      total: sql<number>`count(*) over()::int`,
     })
       .from(products)
       .innerJoin(productVariants, eq(productVariants.productId, products.id))
@@ -99,12 +102,22 @@ export function registerCatalogRoutes(app: FastifyInstance): void {
     const paged = query.availability === 'in_stock' ? base.having(sql`${productAvailableUnits} > 0`) : base
     const rows = await paged.orderBy(desc(products.createdAt)).limit(query.pageSize).offset((query.page - 1) * query.pageSize)
 
-    const [countRow] = await db.select({ total: sql<number>`count(distinct ${products.id})::int` })
-      .from(products)
-      .innerJoin(productVariants, eq(productVariants.productId, products.id))
-      .leftJoin(categories, eq(categories.id, products.categoryId))
-      .leftJoin(collections, eq(collections.id, products.collectionId))
-      .where(where)
+    // The window function has nothing to report once a page has no rows, which also happens when
+    // `page` overshoots the last one; that rare case falls back to a dedicated count query, mirroring
+    // the same joins and HAVING so it agrees with the window function on every other page.
+    let total = rows[0]?.total ?? 0
+    if (rows.length === 0) {
+      const matchingIds = db.select({ id: products.id })
+        .from(products)
+        .innerJoin(productVariants, eq(productVariants.productId, products.id))
+        .leftJoin(inventoryItems, eq(inventoryItems.variantId, productVariants.id))
+        .leftJoin(categories, eq(categories.id, products.categoryId))
+        .leftJoin(collections, eq(collections.id, products.collectionId))
+        .where(where)
+        .groupBy(products.id)
+      const filteredIds = query.availability === 'in_stock' ? matchingIds.having(sql`${productAvailableUnits} > 0`) : matchingIds
+      total = (await filteredIds).length
+    }
 
     const productIds = rows.map((row) => row.id)
     const imagesByProduct = await findImagesByProduct(productIds)
@@ -113,8 +126,8 @@ export function registerCatalogRoutes(app: FastifyInstance): void {
     return {
       page: query.page,
       pageSize: query.pageSize,
-      total: countRow?.total ?? 0,
-      items: rows.map(({ translations, collectionTranslations, ...row }) => {
+      total,
+      items: rows.map(({ translations, collectionTranslations, total: _total, ...row }) => {
         const facets = facetsByProduct.get(row.id) ?? { colors: [], sizes: [] }
         return {
           ...row,

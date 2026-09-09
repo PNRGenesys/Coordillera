@@ -4,7 +4,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { accountDisplayName } from '../lib/account'
 import { useAccount } from '../lib/use-account'
 import { useTranslation } from '../lib/use-translation'
-import { useGetCartQuery } from '../store/catalog-api'
+import { useGetCartQuery, useGetNotificationsQuery } from '../store/catalog-api'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { selectSessionId } from '../store/cart-slice'
 import { selectLanguage, setLanguage } from '../store/ui-slice'
@@ -154,6 +154,8 @@ export function Layout() {
   const language = useAppSelector(selectLanguage)
   const { data: cart } = useGetCartQuery({ sessionId, lang: language })
   const { account } = useAccount()
+  const { data: notifications } = useGetNotificationsQuery(undefined, { skip: !account })
+  const unreadCount = notifications?.filter((notification) => !notification.readAt).length ?? 0
   const { t } = useTranslation()
 
   return (
@@ -168,6 +170,12 @@ export function Layout() {
         </Nav>
         <HeaderActions>
           {account?.role === 'admin' && <HeaderLink to="/admin">{t('admin.nav')}</HeaderLink>}
+          {account?.role === 'artist' && <HeaderLink to="/artist">{t('artist.nav')}</HeaderLink>}
+          {account && (
+            <HeaderLink to="/notifications">
+              {unreadCount > 0 ? `${t('notifications.nav')} (${unreadCount})` : t('notifications.nav')}
+            </HeaderLink>
+          )}
           <HeaderLink to="/account">
             {account?.avatar && <Avatar src={account.avatar} alt="" />}
             {account ? accountDisplayName(account) : t('account.navGuest')}

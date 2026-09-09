@@ -10,6 +10,8 @@ import { categories, inventoryItems, productVariants, products } from '../db/sch
 const TEST_PRODUCT_SLUG = 'catalog-test-product'
 const TEST_CATEGORY_SLUG = 'catalog-test-category'
 const TEST_SKU = 'CATALOG-TEST-SKU'
+const OUT_OF_STOCK_PRODUCT_SLUG = 'catalog-test-out-of-stock'
+const OUT_OF_STOCK_SKU = 'CATALOG-TEST-OOS-SKU'
 
 type ProductDetail = {
   name: string
@@ -43,10 +45,22 @@ beforeAll(async () => {
   if (!variant) throw new Error('Test variant insert returned no row')
 
   await db.insert(inventoryItems).values({ variantId: variant.id, onHand: 5 })
+
+  // No inventory row at all, so `productAvailableUnits` is 0: this product must count towards the
+  // catalog's overall `total` but drop out of it once `availability=in_stock` is requested.
+  await db.delete(products).where(eq(products.slug, OUT_OF_STOCK_PRODUCT_SLUG))
+  const [outOfStockProduct] = await db.insert(products).values({
+    name: 'Catalog Test Out Of Stock', slug: OUT_OF_STOCK_PRODUCT_SLUG, status: 'active',
+  }).returning({ id: products.id })
+  if (!outOfStockProduct) throw new Error('Out of stock test product insert returned no row')
+  await db.insert(productVariants).values({
+    productId: outOfStockProduct.id, sku: OUT_OF_STOCK_SKU, name: 'Catalog Test Out Of Stock Variant', priceCents: 1_000_00,
+  })
 })
 
 afterAll(async () => {
   await db.delete(products).where(eq(products.slug, TEST_PRODUCT_SLUG))
+  await db.delete(products).where(eq(products.slug, OUT_OF_STOCK_PRODUCT_SLUG))
   await db.delete(categories).where(eq(categories.slug, TEST_CATEGORY_SLUG))
   await app.close()
 })
@@ -87,5 +101,18 @@ describe('catalog language', () => {
     const response = await app.inject({ method: 'GET', url: `/api/products/${TEST_PRODUCT_SLUG}?lang=fr` })
     expect(response.statusCode).toBe(400)
     expect(response.json().code).toBe('invalid_request')
+  })
+})
+
+describe('catalog pagination', () => {
+  it('counts only in-stock products in `total` once availability=in_stock is requested, not every match', async () => {
+    const all = await app.inject({ method: 'GET', url: '/api/products?lang=es&pageSize=1' })
+    const inStock = await app.inject({ method: 'GET', url: '/api/products?lang=es&pageSize=1&availability=in_stock' })
+
+    const { total: allTotal } = all.json<{ total: number }>()
+    const { total: inStockTotal, items } = inStock.json<{ total: number; items: { slug: string }[] }>()
+
+    expect(inStockTotal).toBeLessThan(allTotal)
+    expect(items.every((item) => item.slug !== OUT_OF_STOCK_PRODUCT_SLUG)).toBe(true)
   })
 })

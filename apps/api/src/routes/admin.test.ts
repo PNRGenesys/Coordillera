@@ -184,3 +184,27 @@ describe('admin orders', () => {
     expect(response.json().code).toBe('invalid_status_change')
   })
 })
+
+describe('admin customers', () => {
+  it('lists customers with their role, including the shopper created for these tests', async () => {
+    const response = await app.inject({ method: 'GET', url: '/api/admin/customers', headers: { cookie: adminCookie } })
+    expect(response.statusCode).toBe(200)
+
+    const shopper = required(response.json<{ email: string; role: string }[]>().find((entry) => entry.email === SHOPPER_EMAIL), SHOPPER_EMAIL)
+    expect(shopper.role).toBe('customer')
+  })
+
+  it('promotes a customer to artist, and a non-admin cannot', async () => {
+    const [shopper] = await db.select({ id: customers.id }).from(customers).where(eq(customers.email, SHOPPER_EMAIL))
+    const shopperId = required(shopper, 'shopper test customer').id
+
+    const forbidden = await app.inject({ method: 'PATCH', url: `/api/admin/customers/${shopperId}/role`, headers: { cookie: shopperCookie }, payload: { role: 'artist' } })
+    expect(forbidden.statusCode).toBe(403)
+
+    const response = await app.inject({ method: 'PATCH', url: `/api/admin/customers/${shopperId}/role`, headers: { cookie: adminCookie }, payload: { role: 'artist' } })
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({ email: SHOPPER_EMAIL, role: 'artist' })
+
+    await db.update(customers).set({ role: 'customer' }).where(eq(customers.id, shopperId))
+  })
+})
