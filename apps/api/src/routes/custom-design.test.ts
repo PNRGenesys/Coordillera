@@ -23,6 +23,12 @@ const DAYTIME_IN_BOGOTA = new Date('2024-01-15T14:00:00-05:00')
 /** Same day, but past 6pm Bogotá. */
 const NIGHT_IN_BOGOTA = new Date('2024-01-15T20:00:00-05:00')
 
+/**
+ * Only the clock is faked. Faking the timer functions too would freeze the ones postgres uses for its
+ * connections, and every query inside these tests would hang instead of answering.
+ */
+const FROZEN_CLOCK_ONLY: Parameters<typeof vi.useFakeTimers>[0] = { toFake: ['Date'] }
+
 const SHIPPING_ADDRESS = { line1: 'Cra 1 #2-3', city: 'Bogota', region: 'Cundinamarca', postalCode: '110111', country: 'CO' }
 
 function sessionCookie(setCookie: string): string {
@@ -87,7 +93,7 @@ afterAll(async () => {
 
 describe('custom design requests', () => {
   it('rejects a request outside the 9am-6pm Bogotá window', async () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers(FROZEN_CLOCK_ONLY)
     vi.setSystemTime(NIGHT_IN_BOGOTA)
 
     const response = await app.inject({
@@ -110,7 +116,7 @@ describe('custom design requests', () => {
   let orderNumber: string
 
   it('charges the base price plus the surcharge, assigns the fastest artist, and reserves stock', async () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers(FROZEN_CLOCK_ONLY)
     vi.setSystemTime(DAYTIME_IN_BOGOTA)
 
     const response = await app.inject({
@@ -129,7 +135,7 @@ describe('custom design requests', () => {
   })
 
   it('rejects a second request once stock runs out', async () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers(FROZEN_CLOCK_ONLY)
     vi.setSystemTime(DAYTIME_IN_BOGOTA)
 
     // Reserve the remaining units so the next request has nothing left.
@@ -205,7 +211,7 @@ describe('custom design requests', () => {
     const list = await app.inject({ method: 'GET', url: '/api/custom-design/artists', headers: { cookie: customerCookie } })
     expect(list.json<ArtistList>().artists.some((entry) => entry.id === artistId)).toBe(false)
 
-    vi.useFakeTimers()
+    vi.useFakeTimers(FROZEN_CLOCK_ONLY)
     vi.setSystemTime(DAYTIME_IN_BOGOTA)
     const rejected = await app.inject({
       method: 'POST', url: '/api/custom-design/requests', headers: { cookie: customerCookie },
