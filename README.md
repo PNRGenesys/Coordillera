@@ -69,11 +69,37 @@ El esquema es la fuente de verdad (`apps/api/src/db/schema.ts`) y las migracione
 npm.cmd run db:studio --workspace=@cordillera/api
 ```
 
+## Grupo de contenedores
+
+Ademas del flujo de desarrollo, todo el proyecto se puede levantar con Docker Compose (base de datos, API, frontend con nginx y el middleware de plano de control):
+
+```powershell
+docker compose up -d --build
+docker compose run --rm api npm run db:seed   # datos de demo (una sola vez)
+```
+
+- Web: `http://localhost:8080`
+- Middleware: `http://localhost:8000/health`
+- API (a través del middleware): `http://localhost:8000/api/health`
+
+Todo el tráfico `/api/*` pasa por el middleware, que lo reenvía a la API. La API ya no se publica al host (solo es accesible dentro de la red del grupo); el middleware es el único punto de entrada.
+
+En desarrollo, `docker-compose.override.yml` (que Compose aplica automáticamente) reexpone la API en `http://localhost:3000` para poder depurarla directo (Postman, curl) sin pasar por el middleware. Para levantar el grupo tal como iría en producción, con la API cerrada, se usa solo el archivo base:
+
+```powershell
+docker compose -f docker-compose.yml up -d --build
+```
+
+La documentación OpenAPI (Swagger UI) está en `http://localhost:8000/api/docs` (a través del middleware) fuera de producción. En el contenedor de la API (`NODE_ENV=production`) se habilita con `ENABLE_API_DOCS=true`.
+
+La API aplica las migraciones al arrancar; el seed es manual. El middleware (`apps/middleware`, FastAPI) es el plano de control y el punto de entrada de la futura pasarela MercadoPago; hoy solo expone `/health`.
+
 ## Estructura
 
 ```text
 apps/
-  web/  # React + Vite + Linaria + RTK Query
-  api/  # Fastify + Drizzle + PostgreSQL
-docs/   # documentacion del proyecto
+  web/         # React + Vite + Linaria + RTK Query (contenedor: nginx)
+  api/         # Fastify + Drizzle + PostgreSQL
+  middleware/  # FastAPI: plano de control y pasarela de pagos (MercadoPago)
+docs/          # documentacion del proyecto
 ```
