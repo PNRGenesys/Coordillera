@@ -2,6 +2,26 @@
 
 Este archivo registra los cambios incluidos en cada commit solicitado. Las entradas se agregan antes de crear el commit.
 
+## Sin commit - Documentacion OpenAPI (Swagger) de la API
+
+- La API Fastify expone documentacion interactiva (Swagger UI) en `/api/docs`, con la especificacion OpenAPI en `/api/docs/json`. Se agregaron `@fastify/swagger` y `@fastify/swagger-ui` (versiones fijadas).
+- La doc se genera a partir de los mismos esquemas Zod que ya validan cada ruta (`apps/api/src/schemas.ts`), convertidos a JSON Schema en un helper nuevo (`apps/api/src/openapi.ts`) con `z.toJSONSchema`. No se duplica la definicion de esquemas.
+- Decision de diseno para no cambiar comportamiento: los esquemas se adjuntan a las rutas solo para documentar. `buildApp` instala un `validatorCompiler` no-op, de modo que Fastify no revalida con esos esquemas y la validacion real sigue en el `.parse()` de cada ruta. Asi los codigos y mensajes de error (`invalid_request`, `email_taken`, etc.) y las pruebas existentes no cambian.
+- Las ~27 rutas quedaron etiquetadas por area (auth, catalog, cart, checkout, admin, custom-design, artist, notifications, system) con un resumen cada una.
+- Swagger UI se sirve fuera de produccion; en un contenedor con `NODE_ENV=production` se habilita con `ENABLE_API_DOCS=true`, para no exponer la superficie completa de la API por defecto.
+
+## Sin commit - Grupo de contenedores completo y middleware de plano de control (FastAPI)
+
+- `docker-compose.yml` pasa de levantar solo PostgreSQL a un grupo de cuatro servicios: `database`, `api`, `web` y `middleware`, encadenados por healthchecks para que arranquen en orden (`database` sana -> `api` sana -> `web` y `middleware`).
+- Se agrego `apps/middleware`, un servicio FastAPI + uvicorn pensado como plano de control y punto de entrada de la futura pasarela MercadoPago. Hoy es andamiaje: expone `GET /health` (y `GET /` de identidad); no toca todavia catalogo, carrito ni la logica de negocio de la API Fastify, que se mantiene intacta. Dentro del grupo apunta a la API en `http://api:3000`.
+- La configuracion del middleware se lee de variables de entorno (`app/config.py` con `pydantic-settings`): `PORT`, `API_BASE_URL` y los placeholders de MercadoPago (`MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_PUBLIC_KEY`, `MERCADOPAGO_WEBHOOK_SECRET`), sin valores hardcoded. Se agrego `.env.example` versionado y un `.env` local ignorado por git. Dependencias fijadas en `pyproject.toml` con cota superior explicita (FastAPI 0.115.x, uvicorn[standard] 0.34.x, pydantic-settings 2.7.x, httpx 0.28.x).
+- `apps/api` se contenerizo (`apps/api/Dockerfile`, multi-stage `node:22-slim`, construido desde la raiz del repo por los workspaces de npm). Al arrancar aplica las migraciones (`docker-entrypoint.sh` -> `drizzle-kit migrate`) y luego sirve; el seed de datos de demo queda como paso manual (`docker compose run --rm api npm run db:seed`). Healthcheck contra `/api/health`. `DATABASE_URL` y `CORS_ORIGIN` se inyectan por el compose.
+- `apps/web` se contenerizo (`apps/web/Dockerfile`, multi-stage): Vite compila el sitio y nginx lo sirve en el puerto 8080, haciendo de proxy inverso de `/api` al servicio `api`. Mantener el mismo origen evita tocar el frontend (usa la ruta relativa `/api/`) y conserva la cookie de sesion sin CORS.
+- Los cuatro servicios exponen un endpoint de salud medible: `/api/health` (api), `/` (web) y `/health` (middleware); la base usa `pg_isready`.
+- Se agregaron `.dockerignore` (raiz y por app) para no enviar `node_modules`, `dist`, `.git` ni `.env` al contexto de build.
+- El flujo de desarrollo `npm run dev` (Vite y Fastify en el host, base en Docker) no cambia; el grupo de contenedores es una segunda forma de levantar todo.
+- Pendiente fuera de este alcance: la integracion real de MercadoPago (creacion de preferencias, webhook con validacion de firma y endpoint interno en Fastify para marcar el pedido `paid`) y el rate limiting de borde.
+
 ## Diseno de estilo personalizado (fursona), rol de artista y notificaciones
 
 - Nuevo rol `artist`, asignable solo por un administrador. `/admin` gana una tercera seccion, "Clientes", que lista todas las cuentas con un selector de rol (`GET /api/admin/customers`, `PATCH /api/admin/customers/:id/role`); antes la unica forma de dar un rol era el script `npm run admin:grant`, que solo cubria `admin`.

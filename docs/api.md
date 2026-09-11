@@ -1,6 +1,8 @@
 # API
 
-Base local: `http://localhost:3000`. Todas las solicitudes y respuestas usan JSON. Las validaciones de cada ruta viven en `apps/api/src/schemas.ts` (Zod) hasta que se publique una especificación OpenAPI.
+Base local: `http://localhost:3000`. Todas las solicitudes y respuestas usan JSON. Las validaciones de cada ruta viven en `apps/api/src/schemas.ts` (Zod).
+
+Hay documentación OpenAPI interactiva (Swagger UI) en `http://localhost:3000/api/docs`, con la especificación en `/api/docs/json`. Se genera a partir de los mismos esquemas Zod (ver `apps/api/src/openapi.ts`), asi que la doc no se desincroniza de la validación. Está habilitada fuera de producción; en un contenedor con `NODE_ENV=production` se activa con `ENABLE_API_DOCS=true`. Nota: los esquemas Zod se adjuntan solo para documentar; la validación real sigue en el `.parse()` de cada ruta.
 
 ## Publica
 

@@ -6,6 +6,10 @@ Cordillera es una tienda de ropa en un monorepo. La base actual cubre catalogo b
 
 ## Componentes
 
+Hay dos formas de levantar el proyecto: el flujo de desarrollo con `npm run dev` (Vite y Fastify en el host, la base en Docker) y el grupo de contenedores completo con `docker compose`.
+
+Desarrollo (host):
+
 ```text
 Browser
   -> React + TypeScript + Vite (apps/web, puerto 5173)
@@ -13,11 +17,27 @@ Browser
   -> PostgreSQL 17 (Docker, puerto 5432)
 ```
 
-- `apps/web`: interfaz React compilada por Vite. Redux Toolkit administra estado de interfaz y RTK Query consulta la API. En desarrollo, Vite redirige `/api` a la API.
-- `apps/api`: servicio HTTP Fastify. Valida entradas con Zod, expone rutas y usa Drizzle ORM.
+Grupo de contenedores (`docker compose up`):
+
+```text
+Browser (puerto 8080)
+  -> nginx sirviendo el build de apps/web
+        -> /api  (proxy inverso, mismo origen)
+             -> Fastify (apps/api, servicio "api")
+                  -> PostgreSQL 17 (servicio "database")
+
+Plano de control (puerto 8000)
+  -> FastAPI + uvicorn (apps/middleware)
+        -> Fastify (servicio "api") para las transiciones de pedido
+        -> MercadoPago (externo, pendiente de integrar)
+```
+
+- `apps/web`: interfaz React compilada por Vite. Redux Toolkit administra estado de interfaz y RTK Query consulta la API. En desarrollo, Vite redirige `/api` a la API; en el contenedor, nginx sirve el build y hace de proxy inverso de `/api` al servicio `api`, manteniendo el mismo origen para que la cookie de sesion funcione sin CORS.
+- `apps/api`: servicio HTTP Fastify. Valida entradas con Zod, expone rutas y usa Drizzle ORM. En el contenedor, aplica las migraciones al arrancar (`docker-entrypoint.sh`) antes de servir; el seed de datos de demo se ejecuta a mano (`docker compose run --rm api npm run db:seed`).
 - `apps/api/src/db/schema.ts`: esquema de datos como fuente de verdad.
 - `apps/api/drizzle`: migraciones SQL generadas desde el esquema.
-- `docker-compose.yml`: PostgreSQL para desarrollo local.
+- `apps/middleware`: middleware de plano de control en FastAPI. Es el punto donde entrara la pasarela de pagos MercadoPago (creacion de preferencias y recepcion de webhooks) y donde vive el control de borde. Hoy solo expone `/health` para orquestar y medir el grupo de contenedores; no esta en el camino critico de catalogo/carrito. La logica de negocio sigue en Fastify: el webhook de pago validado disparara la transicion de pedido a `paid` llamando a la API (`http://api:3000` dentro del grupo), sin escribir en la base directamente.
+- `docker-compose.yml`: grupo de contenedores con los cuatro servicios (`database`, `api`, `web`, `middleware`), encadenados por healthchecks para que arranquen en orden. Cada servicio expone un health: `/api/health` (api), `/` (web, nginx) y `/health` (middleware).
 
 ## Datos principales
 
