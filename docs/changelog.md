@@ -22,6 +22,13 @@ Este archivo registra los cambios incluidos en cada commit solicitado. Las entra
 - El flujo de desarrollo `npm run dev` (Vite y Fastify en el host, base en Docker) no cambia; el grupo de contenedores es una segunda forma de levantar todo.
 - Pendiente fuera de este alcance: la integracion real de MercadoPago (creacion de preferencias, webhook con validacion de firma y endpoint interno en Fastify para marcar el pedido `paid`) y el rate limiting de borde.
 
+## Correcciones al flujo de diseno personalizado
+
+- `CustomDesignRequestPage` pedia `pageSize: 100` al catalogo, pero la API lo limita a `config.catalogMaxPageSize` (60) y respondia 400: el desplegable de prenda quedaba siempre vacio y no se podia enviar ninguna solicitud. Ahora usa una constante que refleja ese tope.
+- Los 11 tests de `apps/api/src/routes/custom-design.test.ts` congelaban el reloj con `vi.useFakeTimers()` sin argumentos, lo que tambien congela los temporizadores que usa `postgres` para sus conexiones: 10 de ellos fallaban por timeout de 5s. Se limita el fake a `Date`.
+- `apps/e2e/playwright.config.ts` esperaba a que la API estuviera lista consultando su raiz, que no tiene ruta y responde 404, asi que `npm run test:e2e` siempre agotaba el tiempo antes de correr. Ahora espera en `/api/health`.
+- `apps/e2e` excluia los tipos de Node de su `tsconfig.json`, dejando cuatro errores de `process` en su propia configuracion, y no tenia script `typecheck`, por lo que `npm run typecheck` no lo revisaba. Se agregan ambos.
+
 ## Diseno de estilo personalizado (fursona), rol de artista y notificaciones
 
 - Nuevo rol `artist`, asignable solo por un administrador. `/admin` gana una tercera seccion, "Clientes", que lista todas las cuentas con un selector de rol (`GET /api/admin/customers`, `PATCH /api/admin/customers/:id/role`); antes la unica forma de dar un rol era el script `npm run admin:grant`, que solo cubria `admin`.

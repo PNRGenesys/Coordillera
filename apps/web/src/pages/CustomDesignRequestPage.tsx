@@ -69,6 +69,12 @@ const Confirmation = styled.div`
   max-width: 640px;
 `
 
+/**
+ * The whole category is listed in one dropdown. It mirrors `config.catalogMaxPageSize` in the API,
+ * which is the side that enforces it: asking for more makes the request fail and the list come back empty.
+ */
+const CATEGORY_PAGE_SIZE = 60
+
 export function CustomDesignRequestPage() {
   const { t, language, numberLocale } = useTranslation()
   const { account } = useAccount()
@@ -88,7 +94,7 @@ export function CustomDesignRequestPage() {
 
   const { data: categories } = useGetCategoriesQuery(language)
   const { data: preselectedProduct } = useGetProductQuery({ slug: initialProductSlug ?? '', lang: language }, { skip: !initialProductSlug })
-  const { data: categoryProducts } = useGetProductsQuery({ lang: language, category: categorySlug, pageSize: 100 }, { skip: !categorySlug })
+  const { data: categoryProducts } = useGetProductsQuery({ lang: language, category: categorySlug, pageSize: CATEGORY_PAGE_SIZE }, { skip: !categorySlug })
   const { data: product } = useGetProductQuery({ slug: productSlug ?? '', lang: language }, { skip: !productSlug })
   const { data: artistsResponse } = useGetCustomDesignArtistsQuery()
   const [submitRequest, submitState] = useSubmitCustomDesignRequestMutation()

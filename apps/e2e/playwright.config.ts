@@ -20,7 +20,8 @@ export default defineConfig({
     {
       command: 'npm run dev:api',
       cwd: '../..',
-      url: API_URL,
+      // The API has no route at the root, and a 404 never counts as ready, so it waits on the health check.
+      url: `${API_URL}/api/health`,
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
     },
