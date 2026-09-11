@@ -31,9 +31,10 @@ services:
       # not be Secure or the browser would never send it back. Set to true behind
       # HTTPS in a real deployment.
       SESSION_COOKIE_SECURE: "false"
-    # No published port: the API is internal to the compose network now. Only the
-    # middleware talks to it; the browser never reaches it directly. Re-expose
-    # temporarily (e.g. "3000:3000") only when debugging the API in isolation.
+    # No published port: the API is internal to the compose network. Only the
+    # middleware talks to it; the browser never reaches it directly. For local
+    # development, docker-compose.override.yml republishes 3000 to the host so the
+    # API can be debugged directly; that override is not used in a real deployment.
     expose:
       - "3000"
     depends_on:

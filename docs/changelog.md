@@ -2,6 +2,12 @@
 
 Este archivo registra los cambios incluidos en cada commit solicitado. Las entradas se agregan antes de crear el commit.
 
+## Sin commit - Override de desarrollo: API directa y Swagger en el grupo
+
+- Se agrego `docker-compose.override.yml` (Compose lo aplica solo en local, no en un despliegue real). Republica el puerto de la API en `http://localhost:3000` para depurarla directo (Postman, curl) sin pasar por el middleware, y activa `ENABLE_API_DOCS=true` para que el Swagger UI (`/api/docs`) este disponible en el grupo pese a que la API corre con `NODE_ENV=production`.
+- Motivo: el grupo de contenedores es el entorno de desarrollo, pero la API corria como produccion, asi que el Swagger que documentabamos quedaba apagado (404) y no habia forma comoda de listar/probar endpoints. En produccion (solo el archivo base) la API sigue sin puerto publico y el Swagger apagado.
+- `docker compose up` (dev) aplica el override; `docker compose -f docker-compose.yml up` levanta el grupo cerrado como en produccion. Documentado en el README.
+
 ## Sin commit - La cookie de sesion respeta HTTP/HTTPS en vez del build
 
 - El atributo `Secure` de la cookie de sesion dependia de `NODE_ENV === 'production'`. Como el grupo de contenedores corre la API en modo produccion pero se sirve por HTTP plano, la cookie salia `Secure` y el navegador no la reenviaba: el login parecia funcionar (201 al registrarse) pero `GET /api/auth/me` respondia sin cuenta. Se detecto al poner el middleware en el camino critico, pero el fallo era de la API, no del proxy (se reproducia tambien golpeando la API directamente).
