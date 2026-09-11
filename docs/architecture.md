@@ -23,21 +23,20 @@ Grupo de contenedores (`docker compose up`):
 Browser (puerto 8080)
   -> nginx sirviendo el build de apps/web
         -> /api  (proxy inverso, mismo origen)
-             -> Fastify (apps/api, servicio "api")
-                  -> PostgreSQL 17 (servicio "database")
-
-Plano de control (puerto 8000)
-  -> FastAPI + uvicorn (apps/middleware)
-        -> Fastify (servicio "api") para las transiciones de pedido
-        -> MercadoPago (externo, pendiente de integrar)
+             -> FastAPI middleware (servicio "middleware")   <- unico punto de entrada
+                  -> Fastify (servicio "api", solo red interna)
+                       -> PostgreSQL 17 (servicio "database")
+                  -> MercadoPago (externo, pendiente de integrar)
 ```
 
-- `apps/web`: interfaz React compilada por Vite. Redux Toolkit administra estado de interfaz y RTK Query consulta la API. En desarrollo, Vite redirige `/api` a la API; en el contenedor, nginx sirve el build y hace de proxy inverso de `/api` al servicio `api`, manteniendo el mismo origen para que la cookie de sesion funcione sin CORS.
-- `apps/api`: servicio HTTP Fastify. Valida entradas con Zod, expone rutas y usa Drizzle ORM. En el contenedor, aplica las migraciones al arrancar (`docker-entrypoint.sh`) antes de servir; el seed de datos de demo se ejecuta a mano (`docker compose run --rm api npm run db:seed`).
+- Todo el trafico `/api/*` del navegador pasa por el middleware, que lo reenvia a la API. La API ya no se publica al host: solo el middleware la alcanza dentro de la red del grupo. Asi el middleware es el unico borde, el lugar donde despues viven la limitacion de tasa, la autenticacion de borde y la pasarela de pagos.
+- `apps/web`: interfaz React compilada por Vite. Redux Toolkit administra estado de interfaz y RTK Query consulta la API con la ruta relativa `/api`. En desarrollo, Vite redirige `/api` directo a la API (sin middleware); en el contenedor, nginx sirve el build y hace de proxy inverso de `/api` al middleware, manteniendo el mismo origen para que la cookie de sesion funcione sin CORS.
+- `apps/api`: servicio HTTP Fastify. Valida entradas con Zod, expone rutas y usa Drizzle ORM. En el contenedor, aplica las migraciones al arrancar (`docker-entrypoint.sh`) antes de servir; el seed de datos de demo se ejecuta a mano (`docker compose run --rm api npm run db:seed`). Ya no publica puerto: es un servicio interno.
 - `apps/api/src/db/schema.ts`: esquema de datos como fuente de verdad.
 - `apps/api/drizzle`: migraciones SQL generadas desde el esquema.
-- `apps/middleware`: middleware de plano de control en FastAPI. Es el punto donde entrara la pasarela de pagos MercadoPago (creacion de preferencias y recepcion de webhooks) y donde vive el control de borde. Hoy solo expone `/health` para orquestar y medir el grupo de contenedores; no esta en el camino critico de catalogo/carrito. La logica de negocio sigue en Fastify: el webhook de pago validado disparara la transicion de pedido a `paid` llamando a la API (`http://api:3000` dentro del grupo), sin escribir en la base directamente.
-- `docker-compose.yml`: grupo de contenedores con los cuatro servicios (`database`, `api`, `web`, `middleware`), encadenados por healthchecks para que arranquen en orden. Cada servicio expone un health: `/api/health` (api), `/` (web, nginx) y `/health` (middleware).
+- `apps/middleware`: middleware de plano de control y unico punto de entrada de la API en FastAPI. Reenvia de forma transparente cada peticion `/api/*` a la API (`app/proxy.py` con `httpx`), preservando metodo, query, cabeceras, cookies (`Cookie`/`Set-Cookie`) y cuerpo en ambos sentidos; si la API no responde devuelve `502`. Su `/health` es local (no depende de la API). Es el punto donde entrara la pasarela de pagos MercadoPago (creacion de preferencias y recepcion de webhooks) y donde viviran el control de borde y la limitacion de tasa. La logica de negocio sigue en Fastify: el webhook de pago validado disparara la transicion de pedido a `paid` llamando a la API, sin escribir en la base directamente.
+- Compromiso asumido: meter el middleware en el camino critico agrega un salto de red (y el sobrecosto de Python) a cada peticion, a cambio de un unico borde controlado y de no exponer la API. Es un punto unico de fallo del grupo.
+- `docker-compose.yml`: grupo de contenedores con los cuatro servicios (`database`, `api`, `web`, `middleware`), encadenados por healthchecks para arrancar en orden (`database` -> `api` -> `middleware` -> `web`). Cada servicio expone un health: `/api/health` (api, tambien alcanzable a traves del middleware), `/` (web, nginx) y `/health` (middleware).
 
 ## Datos principales
 
@@ -64,7 +63,7 @@ Un cliente puede comprar como invitado o con cuenta. La cuenta vive en la misma 
 
 - Contrasenas con `scrypt` de `node:crypto` (`src/auth/password.ts`), sal por contrasena, comparacion en tiempo constante. No se agrego ninguna dependencia de cifrado.
 - La sesion es un token aleatorio guardado en `customer_sessions`; la base solo almacena su hash SHA-256, asi que un volcado de la base no permite suplantar a nadie.
-- El token viaja en la cookie `cordillera_session` (`httpOnly`, `sameSite=lax`, `secure` en produccion), no en `localStorage`.
+- El token viaja en la cookie `cordillera_session` (`httpOnly`, `sameSite=lax`), no en `localStorage`. El atributo `secure` se controla con `SESSION_COOKIE_SECURE` (por defecto sigue a produccion): debe reflejar si se sirve por HTTPS, no si es un build de produccion. En el grupo de contenedores local, servido por HTTP plano, se pone en `false` para que el navegador devuelva la cookie; detras de HTTPS real va en `true`.
 - El frontend no guarda la sesion en Redux: `GET /api/auth/me` es la unica fuente, envuelta en `src/lib/use-account.ts`.
 - `/account` muestra los datos de la cuenta y `/account/edit` es la pagina de edicion; el cliente cambia alli nombre, correo, telefono, foto y direccion de envio con `PATCH /api/auth/me`, y al guardar vuelve a la ficha. La direccion guardada prellena el checkout y el correo de la cuenta evita volver a pedirlo para la lista de reposicion.
 - La foto se guarda como data URL en la columna `customers.avatar`, porque el proyecto todavia no tiene almacenamiento de archivos. El navegador la recorta en cuadrado y la reduce a 256 px antes de enviarla (`src/lib/avatar.ts`), y la API limita el texto con `AVATAR_MAX_CHARACTERS`. Al haber almacenamiento externo, esa columna deberia pasar a ser una URL.

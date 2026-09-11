@@ -2,6 +2,21 @@
 
 Este archivo registra los cambios incluidos en cada commit solicitado. Las entradas se agregan antes de crear el commit.
 
+## Sin commit - La cookie de sesion respeta HTTP/HTTPS en vez del build
+
+- El atributo `Secure` de la cookie de sesion dependia de `NODE_ENV === 'production'`. Como el grupo de contenedores corre la API en modo produccion pero se sirve por HTTP plano, la cookie salia `Secure` y el navegador no la reenviaba: el login parecia funcionar (201 al registrarse) pero `GET /api/auth/me` respondia sin cuenta. Se detecto al poner el middleware en el camino critico, pero el fallo era de la API, no del proxy (se reproducia tambien golpeando la API directamente).
+- Se agrego `SESSION_COOKIE_SECURE` (en `config.ts`, leida por `session.ts`): controla el flag `Secure` de forma independiente al build. Por defecto sigue a produccion, asi que los entornos que no la definen no cambian de comportamiento (los tests con `NODE_ENV=test` siguen sin `Secure`). El `docker-compose.yml` la pone en `false` para el grupo local (HTTP); detras de HTTPS real debe ir en `true`.
+- Verificado de punta a punta por el grupo (`web` -> nginx -> middleware -> API): registro y `GET /api/auth/me` ya devuelven la cuenta con la cookie de sesion, confirmando de paso que el proxy propaga bien `Cookie`/`Set-Cookie`. Los 61 tests de la API pasan.
+
+## Sin commit - El middleware pasa a ser el unico punto de entrada de la API
+
+- El navegador ya no habla directamente con la API: todo el trafico `/api/*` pasa por el middleware, que lo reenvia a Fastify. El nginx del `web` ahora hace proxy de `/api` al middleware (`http://middleware:8000`) en vez de a la API.
+- El middleware suma un proxy inverso transparente (`apps/middleware/app/proxy.py`, con `httpx`): reenvia metodo, ruta, query, cabeceras, cookies (`Cookie`/`Set-Cookie`) y cuerpo en ambos sentidos, y responde `502` si la API no esta disponible. Usa un cliente `httpx` compartido creado en el `lifespan` de FastAPI. El frontend no cambia: sigue usando la ruta relativa `/api` y el mismo origen conserva la cookie de sesion sin CORS.
+- La API deja de publicar su puerto en `docker-compose.yml` (`ports` -> `expose`): pasa a ser un servicio interno del grupo, solo alcanzable por el middleware. Se puede re-exponer temporalmente para depurar en aislamiento.
+- El orden de arranque queda `database` -> `api` -> `middleware` -> `web` (el `web` ahora depende del middleware sano).
+- La documentacion OpenAPI (Swagger) queda accesible a traves del middleware (`/api/docs`), util en desarrollo.
+- Compromiso asumido: el middleware entra al camino critico, asi que agrega un salto de red y el sobrecosto de Python a cada peticion, y es un punto unico de fallo; a cambio, la API no queda expuesta y hay un unico borde donde colgar limitacion de tasa y autenticacion. Pendiente: esos controles de borde y la integracion de MercadoPago.
+
 ## Sin commit - Documentacion OpenAPI (Swagger) de la API
 
 - La API Fastify expone documentacion interactiva (Swagger UI) en `/api/docs`, con la especificacion OpenAPI en `/api/docs/json`. Se agregaron `@fastify/swagger` y `@fastify/swagger-ui` (versiones fijadas).

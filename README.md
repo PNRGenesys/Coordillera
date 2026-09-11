@@ -79,10 +79,12 @@ docker compose run --rm api npm run db:seed   # datos de demo (una sola vez)
 ```
 
 - Web: `http://localhost:8080`
-- API: `http://localhost:3000/api/health`
 - Middleware: `http://localhost:8000/health`
+- API (a través del middleware): `http://localhost:8000/api/health`
 
-La documentación OpenAPI de la API (Swagger UI) está en `http://localhost:3000/api/docs` fuera de producción. En el contenedor (`NODE_ENV=production`) se habilita con `ENABLE_API_DOCS=true`.
+Todo el tráfico `/api/*` pasa por el middleware, que lo reenvía a la API. La API ya no se publica al host (solo es accesible dentro de la red del grupo); el middleware es el único punto de entrada.
+
+La documentación OpenAPI (Swagger UI) está en `http://localhost:8000/api/docs` (a través del middleware) fuera de producción. En el contenedor de la API (`NODE_ENV=production`) se habilita con `ENABLE_API_DOCS=true`.
 
 La API aplica las migraciones al arrancar; el seed es manual. El middleware (`apps/middleware`, FastAPI) es el plano de control y el punto de entrada de la futura pasarela MercadoPago; hoy solo expone `/health`.
 
